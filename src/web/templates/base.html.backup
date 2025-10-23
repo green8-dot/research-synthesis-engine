@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Research Synthesis Engine{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+    
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/static/css/main.css" rel="stylesheet">
+    
+    <style>
+    /* Global Loading Overlay Styles */
+    .global-loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .loading-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        max-width: 400px;
+    }
+    
+    .loading-content h5 {
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .loading-content .progress {
+        margin: 0 auto;
+    }
+    
+    /* Page-specific loading states */
+    .loading-card {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    
+    .loading-button {
+        position: relative;
+        opacity: 0.7;
+    }
+    
+    .loading-text {
+        color: #6c757d;
+        font-style: italic;
+    }
+    </style>
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <i class="fas fa-satellite me-2"></i>
+                <span class="fw-bold">Research Synthesis Engine</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">
+                            <i class="fas fa-chart-pie me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/scraping">
+                            <i class="fas fa-spider me-1"></i>Web Scraping
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/research">
+                            <i class="fas fa-search me-1"></i>Research
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/reports">
+                            <i class="fas fa-file-alt me-1"></i>Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/knowledge">
+                            <i class="fas fa-project-diagram me-1"></i>Knowledge Graph
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/automation-ideas">
+                            <i class="fas fa-robot me-1"></i>Automation Ideas
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showDocumentManager()">
+                            <i class="fas fa-file-signature me-1"></i>Documents
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" style="font-weight: 600;">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/api-docs" style="color: #212529; font-weight: 500;"><i class="fas fa-code me-2"></i>API Documentation</a></li>
+                            <li><a class="dropdown-item" href="/system-status" style="color: #212529; font-weight: 500;"><i class="fas fa-heartbeat me-2"></i>System Status</a></li>
+                            <li><a class="dropdown-item" href="/diagnostics" style="color: #212529; font-weight: 500;"><i class="fas fa-stethoscope me-2"></i>Diagnostics</a></li>
+                            <li><a class="dropdown-item" href="/ui-monitoring" style="color: #212529; font-weight: 500;"><i class="fas fa-eye me-2"></i>UI Monitoring</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/docs" style="color: #212529; font-weight: 500;"><i class="fas fa-book me-2"></i>User Guide</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="showDocumentManager()" style="color: #212529; font-weight: 500;"><i class="fas fa-file-signature me-2"></i>Document Manager</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportAllDocuments()" style="color: #212529; font-weight: 500;"><i class="fas fa-download me-2"></i>Export Documents</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container-fluid">
+            <!-- Breadcrumb -->
+            {% if breadcrumbs %}
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    {% for crumb in breadcrumbs %}
+                    {% if loop.last %}
+                    <li class="breadcrumb-item active">{{ crumb.name }}</li>
+                    {% else %}
+                    <li class="breadcrumb-item"><a href="{{ crumb.url }}">{{ crumb.name }}</a></li>
+                    {% endif %}
+                    {% endfor %}
+                </ol>
+            </nav>
+            {% endif %}
+
+            <!-- Flash Messages -->
+            <div id="flash-messages"></div>
+
+            <!-- Page Content -->
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer bg-light mt-5">
+        <div class="container-fluid">
+            <div class="row py-4">
+                <div class="col-md-6">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-satellite me-2"></i>Research Synthesis Engine
+                    </h6>
+                    <p class="text-muted small mb-0">
+                        Advanced AI-powered research intelligence system for space industry analysis.
+                    </p>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="mb-3">Quick Links</h6>
+                    <ul class="list-unstyled small">
+                        <li><a href="/dashboard" class="text-decoration-none">Dashboard</a></li>
+                        <li><a href="/api-docs" class="text-decoration-none">API Docs</a></li>
+                        <li><a href="/system-status" class="text-decoration-none">System Status</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="mb-3">System Info</h6>
+                    <ul class="list-unstyled small" style="color: #495057;">
+                        <li style="font-weight: 500;">Version: 1.0.0</li>
+                        <li style="font-weight: 500;">Status: <span class="text-success" style="font-weight: 600;">Online</span></li>
+                        <li id="system-time" style="font-weight: 500;"></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="/static/js/document_control.js"></script>
+    <script src="/static/js/main.js"></script>
+    
+    {% block scripts %}{% endblock %}
+
+    <!-- Global Loading Overlay -->
+    <div id="global-loading-overlay" class="global-loading-overlay hidden-element">
+        <div class="loading-content">
+            <div class="spinner-border text-primary mb-3 spinner-large" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h5 id="loading-title">Processing...</h5>
+            <p id="loading-message" class="text-muted">Please wait while we complete your request</p>
+            <div class="progress mt-3 progress-medium">
+                <div id="loading-progress" class="progress-bar progress-zero" role="progressbar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Issue Report Chatbox -->
+    {% include "chatbox_component.html" %}
+    
+    <!-- Document Manager Modal -->
+    <div class="modal fade" id="documentManagerModal" tabindex="-1" aria-labelledby="documentManagerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="documentManagerModalLabel">
+                        <i class="fas fa-file-signature me-2"></i>Global Document Manager
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <!-- Document Manager Content -->
+                    <div class="container-fluid p-4">
+                        <!-- Search and Filters -->
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" id="doc-search" placeholder="Search documents by ID, title, or tags...">
+                                    <button class="btn btn-outline-primary" type="button" onclick="searchAllDocuments()">
+                                        Search
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select" id="doc-type-filter" onchange="filterDocuments()">
+                                    <option value="">All Types</option>
+                                    <option value="RPT">Reports</option>
+                                    <option value="AUT">Automation Ideas</option>
+                                    <option value="SCR">Web Scrapes</option>
+                                    <option value="KNW">Knowledge</option>
+                                    <option value="SYS">System Generated</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Statistics Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card text-center border-primary">
+                                    <div class="card-body">
+                                        <h4 class="text-primary mb-1" id="total-docs">0</h4>
+                                        <small class="text-muted">Total Documents</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center border-success">
+                                    <div class="card-body">
+                                        <h4 class="text-success mb-1" id="recent-docs">0</h4>
+                                        <small class="text-muted">This Week</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center border-info">
+                                    <div class="card-body">
+                                        <h4 class="text-info mb-1" id="report-docs">0</h4>
+                                        <small class="text-muted">Reports</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center border-warning">
+                                    <div class="card-body">
+                                        <h4 class="text-warning mb-1" id="automation-docs">0</h4>
+                                        <small class="text-muted">Automation</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Documents Table -->
+                        <div class="table-responsive" style="max-height: 400px;">
+                            <table class="table table-hover table-sm">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th>Document ID</th>
+                                        <th>Type</th>
+                                        <th>Title</th>
+                                        <th>Created</th>
+                                        <th>Page</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="documents-table">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            <i class="fas fa-file me-2"></i>No documents found
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-info" onclick="refreshDocumentManager()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="exportFilteredDocuments()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Document Manager JavaScript -->
+    <script>
+    function showDocumentManager() {
+        const modal = new bootstrap.Modal(document.getElementById('documentManagerModal'));
+        modal.show();
+        refreshDocumentManager();
+    }
+    
+    function refreshDocumentManager() {
+        const stats = window.DocumentControl.getStatistics();
+        const docs = Array.from(window.DocumentControl.documents.values());
+        
+        // Update statistics
+        document.getElementById('total-docs').textContent = stats.total;
+        document.getElementById('recent-docs').textContent = stats.recentCount;
+        document.getElementById('report-docs').textContent = window.DocumentControl.getDocumentsByType('RPT').length;
+        document.getElementById('automation-docs').textContent = window.DocumentControl.getDocumentsByType('AUT').length;
+        
+        // Update table
+        updateDocumentsTable(docs);
+    }
+    
+    function updateDocumentsTable(docs) {
+        const tbody = document.getElementById('documents-table');
+        
+        if (docs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-file me-2"></i>No documents found</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = docs.map(doc => `
+            <tr>
+                <td><code class="document-id-badge" onclick="window.DocumentControl.copyDocumentId('${doc.id}')" title="Click to copy">${doc.id}</code></td>
+                <td><span class="badge bg-${getTypeColor(doc.type)}">${doc.type}-${doc.subtype}</span></td>
+                <td class="text-truncate" style="max-width: 200px;" title="${doc.title}">${doc.title}</td>
+                <td><small>${new Date(doc.created).toLocaleDateString()}</small></td>
+                <td><small>${doc.page}</small></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="navigateToDocument('${doc.id}')" title="Go to document">
+                        <i class="fas fa-external-link-alt"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeDocument('${doc.id}')" title="Remove document">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    function getTypeColor(type) {
+        const colors = {
+            'RPT': 'primary',
+            'AUT': 'success', 
+            'SCR': 'info',
+            'KNW': 'warning',
+            'SYS': 'secondary',
+            'USR': 'dark'
+        };
+        return colors[type] || 'secondary';
+    }
+    
+    function searchAllDocuments() {
+        const query = document.getElementById('doc-search').value;
+        const results = window.DocumentControl.searchDocuments(query);
+        updateDocumentsTable(results);
+    }
+    
+    function filterDocuments() {
+        const type = document.getElementById('doc-type-filter').value;
+        const docs = type ? window.DocumentControl.getDocumentsByType(type) : Array.from(window.DocumentControl.documents.values());
+        updateDocumentsTable(docs);
+    }
+    
+    function exportFilteredDocuments() {
+        const type = document.getElementById('doc-type-filter').value;
+        window.DocumentControl.exportDocuments(type || null);
+    }
+    
+    function exportAllDocuments() {
+        window.DocumentControl.exportDocuments();
+    }
+    
+    function navigateToDocument(docId) {
+        const doc = window.DocumentControl.getDocument(docId);
+        if (doc && doc.page) {
+            window.location.href = doc.page;
+        } else {
+            if (window.RSApp) RSApp.showMessage('Document location not available', 'warning');
+        }
+    }
+    
+    function removeDocument(docId) {
+        if (confirm('Remove this document from the registry? This action cannot be undone.')) {
+            window.DocumentControl.documents.delete(docId);
+            window.DocumentControl.saveRegistry();
+            refreshDocumentManager();
+            if (window.RSApp) RSApp.showMessage('Document removed from registry', 'info');
+        }
+    }
+    
+    // Auto-refresh document manager when modal is shown
+    document.getElementById('documentManagerModal').addEventListener('shown.bs.modal', refreshDocumentManager);
+    </script>
+
+</body>
+</html>

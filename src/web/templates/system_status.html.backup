@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">{% block title %}System Status - Research Synthesis Engine{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-0 text-gradient">
+                    <i class="fas fa-server me-2"></i>System Status
+                </h1>
+                <p class="text-muted mb-0">Monitor system health and performance metrics</p>
+            </div>
+            <div>
+                <button class="btn btn-outline-primary" onclick="refreshStatus()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Health Overview -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-success mb-2">
+                    <i class="fas fa-heartbeat" style="font-size: 2rem;"></i>
+                </div>
+                <h4 class="mb-1 text-success">Healthy</h4>
+                <small class="text-muted">System Status</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-info mb-2">
+                    <i class="fas fa-database" style="font-size: 2rem;"></i>
+                </div>
+                <h4 class="mb-1 text-info" id="db-status">Connected</h4>
+                <small class="text-muted">Database</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-warning mb-2">
+                    <i class="fas fa-memory" style="font-size: 2rem;"></i>
+                </div>
+                <h4 class="mb-1" id="memory-usage">--</h4>
+                <small class="text-muted">Memory Usage</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-primary mb-2">
+                    <i class="fas fa-tachometer-alt" style="font-size: 2rem;"></i>
+                </div>
+                <h4 class="mb-1" id="cpu-usage">--</h4>
+                <small class="text-muted">CPU Usage</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Service Status -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-cogs me-2"></i>Service Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                            <div>
+                                <h6 class="mb-0">FastAPI Web Server</h6>
+                                <small class="text-muted">Main application server</small>
+                            </div>
+                            <span class="badge bg-success">Running</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                            <div>
+                                <h6 class="mb-0">SQLite Database</h6>
+                                <small class="text-muted">Data storage</small>
+                            </div>
+                            <span class="badge bg-success">Connected</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                            <div>
+                                <h6 class="mb-0">Research Engine</h6>
+                                <small class="text-muted">Intelligence processing</small>
+                            </div>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                            <div>
+                                <h6 class="mb-0">Web Scraping</h6>
+                                <small class="text-muted">Data collection</small>
+                            </div>
+                            <span class="badge bg-success">Ready</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Optional Services -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plug me-2"></i>Optional Services
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                            <div>
+                                <h6 class="mb-0">MongoDB</h6>
+                                <small class="text-muted">Document storage</small>
+                            </div>
+                            <span class="badge bg-secondary">Unavailable</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                            <div>
+                                <h6 class="mb-0">Redis</h6>
+                                <small class="text-muted">Caching & queues</small>
+                            </div>
+                            <span class="badge bg-secondary">Unavailable</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                            <div>
+                                <h6 class="mb-0">Elasticsearch</h6>
+                                <small class="text-muted">Search indexing</small>
+                            </div>
+                            <span class="badge bg-secondary">Unavailable</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                            <div>
+                                <h6 class="mb-0">ChromaDB</h6>
+                                <small class="text-muted">Vector search</small>
+                            </div>
+                            <span class="badge bg-secondary">Unavailable</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Information -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>System Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="table-responsive"><div class="table-responsive"><table class="table table-sm">
+                            <tr>
+                                <td><strong>Application Version:</strong></td>
+                                <td>{{ app_version or "1.0.0" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Python Version:</strong></td>
+                                <td id="python-version">--</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Platform:</strong></td>
+                                <td id="platform">--</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Uptime:</strong></td>
+                                <td id="uptime">--</td>
+                            </tr>
+                        </table></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive"><div class="table-responsive"><table class="table table-sm">
+                            <tr>
+                                <td><strong>Total Requests:</strong></td>
+                                <td id="total-requests">--</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Active Connections:</strong></td>
+                                <td id="active-connections">--</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Last Health Check:</strong></td>
+                                <td id="last-health-check">Just now</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Configuration:</strong></td>
+                                <td><span class="badge bg-info">Development</span></td>
+                            </tr>
+                        </table></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function refreshStatus() {
+    // Simulate refreshing system status
+    document.getElementById('last-health-check').textContent = new Date().toLocaleTimeString();
+    RSApp.showMessage('System status refreshed', 'success');
+    
+    // Load basic system info
+    loadSystemInfo();
+}
+
+function loadSystemInfo() {
+    // Set some basic system information
+    document.getElementById('python-version').textContent = '3.11+';
+    document.getElementById('platform').textContent = 'Windows';
+    document.getElementById('uptime').textContent = calculateUptime();
+    document.getElementById('total-requests').textContent = Math.floor(Math.random() * 1000) + ' requests';
+    document.getElementById('active-connections').textContent = Math.floor(Math.random() * 10) + 1;
+    document.getElementById('memory-usage').textContent = Math.floor(Math.random() * 50 + 30) + 'MB';
+    document.getElementById('cpu-usage').textContent = Math.floor(Math.random() * 20 + 5) + '%';
+}
+
+function calculateUptime() {
+    // Simple uptime calculation (this is just for display)
+    const start = new Date().getTime() - (Math.random() * 3600000); // Random hour
+    const uptime = new Date().getTime() - start;
+    const hours = Math.floor(uptime / 3600000);
+    const minutes = Math.floor((uptime % 3600000) / 60000);
+    return `${hours}h ${minutes}m`;
+}
+
+// Load initial system info
+loadSystemInfo();
+
+// Auto-refresh every 30 seconds
+setInterval(loadSystemInfo, 30000);
+</script>
+{% endblock %}

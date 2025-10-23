@@ -1,0 +1,350 @@
+<!-- Global UI Issue Report Chatbox Component -->
+<!-- This component can be included on any page to allow users to report UI issues -->
+
+<div class="global-issue-chatbox" id="global-issue-chatbox">
+    <div class="chatbox-header" onclick="toggleGlobalChatbox()">
+        <i class="fas fa-comment-alt me-2"></i>
+        <span>Report Issue</span>
+        <i class="fas fa-chevron-up chatbox-toggle-icon collapsed" id="global-chatbox-toggle-icon"></i>
+    </div>
+    <div class="chatbox-body collapsed" id="global-chatbox-body">
+        <form id="global-issue-report-form">
+            <div class="mb-3">
+                <label for="global-report-page" class="form-label small">Current Page</label>
+                <input type="text" class="form-control form-control-sm" id="global-report-page" 
+                       readonly value="{{ page_title or 'Unknown' }}">
+            </div>
+            
+            <div class="mb-3">
+                <label for="global-report-category" class="form-label small">Issue Type *</label>
+                <select class="form-select form-select-sm" id="global-report-category" required>
+                    <option value="">What kind of issue?</option>
+                    <option value="readability">Hard to read or understand</option>
+                    <option value="accessibility">Accessibility problem</option>
+                    <option value="mobile_responsiveness">Doesn't work well on mobile</option>
+                    <option value="navigation">Navigation or menu issue</option>
+                    <option value="layout">Layout or positioning problem</option>
+                    <option value="functionality">Button or feature not working</option>
+                    <option value="performance">Page is slow or unresponsive</option>
+                    <option value="content">Content error or typo</option>
+                    <option value="visual_design">Visual design problem</option>
+                    <option value="error_message">Error message or confusing feedback</option>
+                    <option value="other">Something else</option>
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="global-report-severity" class="form-label small">How serious is this? *</label>
+                <select class="form-select form-select-sm" id="global-report-severity" required>
+                    <option value="">Select severity...</option>
+                    <option value="low">Minor - Small inconvenience</option>
+                    <option value="medium">Moderate - Affects my experience</option>
+                    <option value="high">Major - Hard to use this feature</option>
+                    <option value="critical">Critical - Can't complete my task</option>
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="global-report-description" class="form-label small">What happened? *</label>
+                <textarea class="form-control form-control-sm" id="global-report-description" rows="3" 
+                         placeholder="Describe what you were trying to do and what went wrong..." required></textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label for="global-report-suggested-fix" class="form-label small">How would you fix it? (optional)</label>
+                <textarea class="form-control form-control-sm" id="global-report-suggested-fix" rows="2" 
+                         placeholder="Any suggestions for improvement?"></textarea>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-sm" id="global-submit-report-btn">
+                    <i class="fas fa-paper-plane me-1"></i>Send Report
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearGlobalReportForm()">
+                    <i class="fas fa-eraser me-1"></i>Clear
+                </button>
+            </div>
+        </form>
+        
+        <!-- Success/Error Messages -->
+        <div class="mt-2" id="global-report-messages"></div>
+    </div>
+</div>
+
+<style>
+/* Global Chatbox Styles */
+.global-issue-chatbox {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: min(300px, 90vw);
+    max-height: min(480px, 70vh);
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    z-index: 999;
+    border: 1px solid #dee2e6;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.global-issue-chatbox .chatbox-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 10px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.global-issue-chatbox .chatbox-header:hover {
+    background: linear-gradient(135deg, #218838 0%, #1fa086 100%);
+}
+
+.global-issue-chatbox .chatbox-toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+.global-issue-chatbox .chatbox-toggle-icon.collapsed {
+    transform: rotate(180deg);
+}
+
+.global-issue-chatbox .chatbox-body {
+    padding: 14px;
+    max-height: min(380px, 50vh);
+    overflow-y: auto;
+    transition: all 0.3s ease;
+}
+
+.global-issue-chatbox .chatbox-body.collapsed {
+    max-height: 0;
+    padding: 0 14px;
+    overflow: hidden;
+}
+
+.global-issue-chatbox .form-label {
+    font-weight: 600;
+    color: #343a40;
+    margin-bottom: 3px;
+}
+
+.global-issue-chatbox .form-control,
+.global-issue-chatbox .form-select {
+    border-radius: 5px;
+    border: 1px solid #ced4da;
+    font-size: 0.8rem;
+}
+
+.global-issue-chatbox .form-control:focus,
+.global-issue-chatbox .form-select:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.15rem rgba(40, 167, 69, 0.25);
+}
+
+.global-chatbox-message {
+    padding: 6px 10px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.global-chatbox-message.success {
+    background-color: #d4edda;
+    color: #0f3c17;
+    font-weight: 600;
+    border: 1px solid #c3e6cb;
+}
+
+.global-chatbox-message.error {
+    background-color: #f8d7da;
+    color: #5c1619;
+    font-weight: 600;
+    border: 1px solid #f5c6cb;
+}
+
+/* Minimize on smaller screens */
+@media (max-width: 768px) {
+    .global-issue-chatbox {
+        width: min(280px, 85vw);
+        bottom: 15px;
+        right: 15px;
+    }
+}
+
+@media (max-width: 576px) {
+    .global-issue-chatbox {
+        width: calc(100vw - 30px);
+        right: 15px;
+        left: 15px;
+    }
+}
+</style>
+
+<script>
+// Global Chatbox JavaScript
+let globalChatboxInitialized = false;
+
+// Initialize global chatbox when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    if (!globalChatboxInitialized) {
+        initializeGlobalChatbox();
+        globalChatboxInitialized = true;
+    }
+});
+
+function initializeGlobalChatbox() {
+    // Set up form submission
+    const form = document.getElementById('global-issue-report-form');
+    if (form) {
+        form.addEventListener('submit', handleGlobalIssueReport);
+    }
+    
+    // Auto-detect current page if not set
+    const pageInput = document.getElementById('global-report-page');
+    if (pageInput && (!pageInput.value || pageInput.value === 'Unknown')) {
+        const pathname = window.location.pathname;
+        let pageName = pathname === '/' ? 'dashboard' : pathname.substring(1);
+        pageName = pageName.replace('-', '_');
+        pageInput.value = pageName;
+    }
+}
+
+function toggleGlobalChatbox() {
+    const body = document.getElementById('global-chatbox-body');
+    const icon = document.getElementById('global-chatbox-toggle-icon');
+    
+    if (body && icon) {
+        if (body.classList.contains('collapsed')) {
+            body.classList.remove('collapsed');
+            icon.classList.remove('collapsed');
+        } else {
+            body.classList.add('collapsed');
+            icon.classList.add('collapsed');
+        }
+    }
+}
+
+async function handleGlobalIssueReport(event) {
+    event.preventDefault();
+    
+    const submitBtn = document.getElementById('global-submit-report-btn');
+    const messagesDiv = document.getElementById('global-report-messages');
+    
+    if (!submitBtn || !messagesDiv) return;
+    
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Sending...';
+    
+    try {
+        // Collect form data
+        const reportData = {
+            page: document.getElementById('global-report-page')?.value || window.location.pathname.substring(1) || 'dashboard',
+            category: document.getElementById('global-report-category')?.value || 'other',
+            severity: document.getElementById('global-report-severity')?.value || 'medium',
+            element: 'user_reported',
+            description: document.getElementById('global-report-description')?.value || '',
+            suggested_fix: document.getElementById('global-report-suggested-fix')?.value || ''
+        };
+        
+        // Validate required fields
+        if (!reportData.description.trim()) {
+            throw new Error('Please describe the issue');
+        }
+        if (!reportData.category) {
+            throw new Error('Please select an issue type');
+        }
+        if (!reportData.severity) {
+            throw new Error('Please select how serious this is');
+        }
+        
+        console.log('Submitting report data:', reportData);
+        
+        // Submit report
+        const response = await fetch('/api/v1/ui-monitoring/report-issue', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(reportData)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        console.log('Report submission response:', result);
+        
+        if (result.status === 'success') {
+            console.log('Showing success message');
+            showGlobalChatboxMessage('Thanks! Your report has been submitted and will be reviewed.', 'success');
+            clearGlobalReportForm();
+            
+            // Auto-close after success
+            setTimeout(() => {
+                console.log('Auto-closing chatbox');
+                toggleGlobalChatbox();
+            }, 3000);
+        } else {
+            throw new Error(result.detail || 'Failed to submit report');
+        }
+    } catch (error) {
+        console.error('Error submitting issue report:', error);
+        showGlobalChatboxMessage('Failed to submit: ' + error.message, 'error');
+    } finally {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Send Report';
+    }
+}
+
+function showGlobalChatboxMessage(message, type) {
+    console.log('showGlobalChatboxMessage called:', message, type);
+    const messagesDiv = document.getElementById('global-report-messages');
+    if (!messagesDiv) {
+        console.error('Messages div not found!');
+        return;
+    }
+    
+    const messageElement = document.createElement('div');
+    messageElement.className = `global-chatbox-message ${type}`;
+    messageElement.textContent = message;
+    
+    messagesDiv.innerHTML = '';
+    messagesDiv.appendChild(messageElement);
+    console.log('Message element added to DOM');
+    
+    // Clear message after 5 seconds
+    setTimeout(() => {
+        if (messageElement.parentNode) {
+            messageElement.remove();
+        }
+    }, 5000);
+}
+
+function clearGlobalReportForm() {
+    const form = document.getElementById('global-issue-report-form');
+    if (form) {
+        form.reset();
+        
+        // Reset page field to current page
+        const pageInput = document.getElementById('global-report-page');
+        if (pageInput) {
+            const pathname = window.location.pathname;
+            let pageName = pathname === '/' ? 'dashboard' : pathname.substring(1);
+            pageName = pageName.replace('-', '_');
+            pageInput.value = pageName;
+        }
+    }
+    
+    const messagesDiv = document.getElementById('global-report-messages');
+    if (messagesDiv) {
+        messagesDiv.innerHTML = '';
+    }
+}
+</script>

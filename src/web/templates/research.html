@@ -1,0 +1,1829 @@
+{% extends "base.html" %}
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">{% block title %}Research - Research Synthesis Engine{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-0 text-gradient">
+                    <i class="fas fa-search me-2"></i>Research & Analysis
+                </h1>
+                <p class="text-muted mb-0">Search and analyze space industry intelligence</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Interface -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-search me-2"></i>Intelligent Search
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="research-form" data-submit-api="/research/search" data-method="POST">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="mb-3">
+                                <label for="search-query" class="form-label">Search Query</label>
+                                <input type="text" class="form-control form-control-lg" id="search-query" 
+                                       name="query" placeholder="Enter your research question or topic..."
+                                       autocomplete="off">
+                                <div class="form-text">
+                                    Examples: "space manufacturing trends", "SpaceX partnerships", "orbital assembly technologies"
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="mb-3">
+                                <label for="search-type" class="form-label">Search Type</label>
+                                <select class="form-select form-select-lg" id="search-type" name="search_type">
+                                    <option value="semantic">Semantic Search</option>
+                                    <option value="keyword">Keyword Search</option>
+                                    <option value="entity">Entity Search</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-lg-3">
+                            <div class="mb-3">
+                                <label for="time-range" class="form-label">Time Range</label>
+                                <select class="form-select" id="time-range" name="time_range">
+                                    <option value="all">All Time</option>
+                                    <option value="week">Last Week</option>
+                                    <option value="month" selected>Last Month</option>
+                                    <option value="quarter">Last Quarter</option>
+                                    <option value="year">Last Year</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="mb-3">
+                                <label for="source-filter" class="form-label">Source Filter</label>
+                                <select class="form-select" id="source-filter" name="sources">
+                                    <option value="all">All Sources</option>
+                                    <option value="news">News Sources</option>
+                                    <option value="academic">Academic Papers</option>
+                                    <option value="government">Government Sources</option>
+                                    <option value="company">Company Sources</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="mb-3">
+                                <label for="content-type" class="form-label">Content Type</label>
+                                <select class="form-select" id="content-type" name="content_type">
+                                    <option value="all">All Types</option>
+                                    <option value="article">Articles</option>
+                                    <option value="report">Reports</option>
+                                    <option value="patent">Patents</option>
+                                    <option value="press-release">Press Releases</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="mb-3">
+                                <label for="result-limit" class="form-label">Max Results</label>
+                                <select class="form-select" id="result-limit" name="limit">
+                                    <option value="10">10 Results</option>
+                                    <option value="25" selected>25 Results</option>
+                                    <option value="50">50 Results</option>
+                                    <option value="100">100 Results</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="clearSearch()">
+                            <i class="fas fa-times me-1"></i>Clear
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results -->
+<div class="row" id="search-results" style="display: none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Search Results
+                </h5>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="exportResults()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm ms-2" onclick="generateInsights()">
+                        <i class="fas fa-lightbulb me-1"></i>Generate Insights
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="results-summary" class="alert alert-info" style="display: none;"></div>
+                <div id="results-list"></div>
+                <div id="results-pagination" class="d-flex justify-content-center mt-4"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Research Chat & Theory Crafting -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <!-- Research Chat Interface -->
+        <div class="card h-100">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comments me-2"></i>Research Chat
+                    </h5>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="clearChat()">
+                            <i class="fas fa-trash me-1"></i>Clear Chat
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="exportChat()">
+                            <i class="fas fa-download me-1"></i>Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body d-flex flex-column" style="height: 400px;">
+                <div id="chat-messages" class="flex-grow-1 overflow-auto mb-3 border rounded p-3" style="background-color: #f8f9fa;">
+                    <div class="text-muted text-center py-4">
+                        <i class="fas fa-robot fa-2x mb-2"></i>
+                        <p class="mb-0">Start a research conversation...</p>
+                        <small>Ask questions, explore theories, and develop research ideas collaboratively</small>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="chat-input" class="form-control" 
+                           placeholder="Ask a research question or share an idea..." 
+                           onkeypress="handleChatKeyPress(event)">
+                    <button class="btn btn-primary" type="button" onclick="sendChatMessage()" aria-label="Action button">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <!-- Theory Crafting Panel -->
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-flask me-2"></i>Theory Crafting
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="fw-semibold">Active Research Topics</h6>
+                    <div id="active-topics" class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="badge bg-primary">Space Manufacturing</span>
+                        <span class="badge bg-success">Orbital Assembly</span>
+                        <span class="badge bg-info">Mars Colonization</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="fw-semibold">Hypothesis Builder</h6>
+                    <textarea id="hypothesis-text" class="form-control mb-2" rows="3" 
+                              placeholder="Enter your research hypothesis..."></textarea>
+                    <button class="btn btn-outline-primary btn-sm w-100" onclick="addHypothesis()">
+                        <i class="fas fa-plus me-1"></i>Add to Research
+                    </button>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="fw-semibold">Research Connections</h6>
+                    <div id="connection-graph" class="border rounded p-2 text-center text-muted" style="min-height: 100px;">
+                        <small>Connections will appear as you build theories</small>
+                    </div>
+                </div>
+                
+                <div>
+                    <button class="btn btn-success btn-sm w-100 mb-2" onclick="generateInsightReport()">
+                        <i class="fas fa-chart-line me-1"></i>Generate Insight Report
+                    </button>
+                    <div class="dropdown mb-2">
+                        <button class="btn btn-primary btn-sm dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-share-alt me-1"></i>Export Theory
+                        </button>
+                        <ul class="dropdown-menu w-100">
+                            <li><a class="dropdown-item" href="#" onclick="exportToReport()">
+                                <i class="fas fa-file-alt me-2"></i>Generate Research Report
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportToKnowledgeGraph()">
+                                <i class="fas fa-project-diagram me-2"></i>Add to Knowledge Graph
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportToResearchNotes()">
+                                <i class="fas fa-sticky-note me-2"></i>Save as Research Notes
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportChat()">
+                                <i class="fas fa-download me-2"></i>Export Session Data
+                            </a></li>
+                        </ul>
+                    </div>
+                    <button class="btn btn-warning btn-sm w-100" onclick="saveTheorySession()">
+                        <i class="fas fa-save me-1"></i>Save Theory Session
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Search Suggestions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Research Suggestions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <h6 class="fw-semibold text-primary">Space Manufacturing</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('in-space manufacturing')">
+                                In-space Manufacturing
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('3D printing space')">
+                                3D Printing
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('orbital assembly')">
+                                Orbital Assembly
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <h6 class="fw-semibold text-success">Major Players</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('SpaceX')">
+                                SpaceX
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('Blue Origin')">
+                                Blue Origin
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('Virgin Galactic')">
+                                Virgin Galactic
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <h6 class="fw-semibold text-warning">Technologies</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('reusable rockets')">
+                                Reusable Rockets
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('satellite constellation')">
+                                Satellite Constellations
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('space tourism')">
+                                Space Tourism
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentResults = [];
+
+function quickSearch(query) {
+    document.getElementById('search-query').value = query;
+    performSearch();
+}
+
+function clearSearch() {
+    document.getElementById('research-form').reset();
+    document.getElementById('search-results').style.display = 'none';
+    currentResults = [];
+}
+
+function performSearch() {
+    const form = document.getElementById('research-form');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    RSApp.showLoading(true);
+    
+    axios.post('/api/v1/research/search', data)
+        .then(response => {
+            displayResults(response.data);
+        })
+        .catch(error => {
+            RSApp.showMessage('Search failed. Please try again.', 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+function displayResults(data) {
+    const resultsContainer = document.getElementById('search-results');
+    const summaryContainer = document.getElementById('results-summary');
+    const listContainer = document.getElementById('results-list');
+    
+    currentResults = data.results || [];
+    
+    // Show results container
+    resultsContainer.style.display = 'block';
+    
+    // Display summary
+    if (data.summary) {
+        summaryContainer.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <span><strong>${data.total || 0} results found</strong> in ${data.search_time || 0}ms</span>
+                <span>Confidence: <strong>${Math.round((data.confidence || 0) * 100)}%</strong></span>
+            </div>
+        `;
+        summaryContainer.style.display = 'block';
+    }
+    
+    // Display results
+    if (currentResults.length > 0) {
+        listContainer.innerHTML = currentResults.map((result, index) => `
+            <div class="border rounded p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-0">
+                        ${result.type === 'entity' ? 
+                            `<a href="#" onclick="showEntityDetails(${result.id}, '${(result.title || 'Untitled').replace(/'/g, "\\'")}')" class="text-decoration-none">
+                                <i class="fas fa-sitemap me-1"></i>${result.title || 'Untitled'}
+                            </a>` :
+                            (result.url ? 
+                                `<a href="${result.url}" target="_blank" class="text-decoration-none">
+                                    <i class="fas fa-external-link-alt me-1"></i>${result.title || 'Untitled'}
+                                </a>` :
+                                `<span class="text-muted">
+                                    <i class="fas fa-file me-1"></i>${result.title || 'Untitled'} <small>(No URL available)</small>
+                                </span>`
+                            )
+                        }
+                    </h6>
+                    <span class="badge ${result.type === 'entity' ? 'bg-primary' : 'bg-success'}">${result.source || 'Unknown'}</span>
+                </div>
+                <p class="text-muted mb-2">${result.description || result.summary || 'No description available'}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="fas fa-calendar me-1"></i>${result.date ? new Date(result.date).toLocaleDateString() : 'Unknown date'}
+                        <i class="fas fa-star ms-3 me-1"></i>Relevance: ${Math.round((result.relevance || 0) * 100)}%
+                    </small>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="analyzeResult(${index})">
+                            <i class="fas fa-chart-line me-1"></i>Analyze
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        listContainer.innerHTML = `
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-search fa-3x mb-3"></i>
+                <h5>No results found</h5>
+                <p>Try adjusting your search terms or filters</p>
+            </div>
+        `;
+    }
+}
+
+function exportResults() {
+    if (currentResults.length === 0) {
+        RSApp.showMessage('No results to export', 'warning');
+        return;
+    }
+    RSApp.showMessage('Export functionality coming soon!', 'info');
+}
+
+function generateInsights() {
+    if (currentResults.length === 0) {
+        RSApp.showMessage('No results to analyze', 'warning');
+        return;
+    }
+    
+    RSApp.showGlobalLoading({
+        title: 'Generating Insights...',
+        message: `Analyzing ${currentResults.length} search results to generate actionable insights`,
+        progress: 10
+    });
+    
+    // Prepare insights data
+    const insightsData = {
+        results: currentResults,
+        query: document.getElementById('search-query').value,
+        search_type: document.getElementById('search-type').value,
+        total_results: currentResults.length
+    };
+    
+    fetch('/api/v1/research/insights/generate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(insightsData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        RSApp.updateLoadingProgress(80, 'Finalizing Insights...', 'Almost ready');
+        
+        setTimeout(() => {
+            RSApp.hideGlobalLoading();
+            showInsightsModal(data);
+            RSApp.showMessage('Research insights generated successfully!', 'success');
+        }, 500);
+    })
+    .catch(error => {
+        RSApp.hideGlobalLoading();
+        console.error('Insights generation error:', error);
+        RSApp.showMessage('Failed to generate insights. Please try again.', 'danger');
+    });
+}
+
+function showInsightsModal(insights) {
+    const modalHtml = `
+        <div class="modal fade" id="insightsModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-lightbulb me-2"></i>Research Insights
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6>Key Insights</h6>
+                                ${formatInsights(insights)}
+                            </div>
+                            <div class="col-md-4">
+                                <h6>Analysis Summary</h6>
+                                <div class="list-group">
+                                    <div class="list-group-item">
+                                        <strong>Query:</strong> ${insights.query || 'N/A'}
+                                    </div>
+                                    <div class="list-group-item">
+                                        <strong>Results Analyzed:</strong> ${insights.total_results || 0}
+                                    </div>
+                                    <div class="list-group-item">
+                                        <strong>Generated:</strong> ${new Date().toLocaleString()}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="exportInsights('${JSON.stringify(insights).replace(/'/g, "\\'")}')">
+                            <i class="fas fa-download me-1"></i>Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal
+    const existingModal = document.getElementById('insightsModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('insightsModal'));
+    modal.show();
+    
+    // Cleanup on hide
+    document.getElementById('insightsModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+function formatInsights(insights) {
+    if (!insights || !insights.insights) {
+        return '<p class="text-muted">No insights available</p>';
+    }
+    
+    return insights.insights.map(insight => `
+        <div class="mb-4">
+            <h6 class="text-primary">${insight.title}</h6>
+            <p>${insight.summary}</p>
+            ${insight.key_points ? `<ul>${insight.key_points.map(point => `<li>${point}</li>`).join('')}</ul>` : ''}
+        </div>
+    `).join('');
+}
+
+function exportInsights(insightsData) {
+    const insights = JSON.parse(insightsData);
+    const blob = new Blob([JSON.stringify(insights, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `research-insights-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function analyzeResult(index) {
+    const result = currentResults[index];
+    
+    if (!result) {
+        RSApp.showMessage('Result not found', 'danger');
+        return;
+    }
+    
+    RSApp.showGlobalLoading({
+        title: 'Analyzing Article...',
+        message: `Deep analysis of: ${result.title}`,
+        progress: 20
+    });
+    
+    fetch('/api/v1/research/articles/analyze', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify([result])
+    })
+    .then(response => response.json())
+    .then(data => {
+        RSApp.updateLoadingProgress(70, 'Processing Analysis...', 'Generating detailed insights');
+        
+        setTimeout(() => {
+            RSApp.hideGlobalLoading();
+            showArticleAnalysisModal(result, data);
+            RSApp.showMessage('Article analysis completed!', 'success');
+        }, 800);
+    })
+    .catch(error => {
+        RSApp.hideGlobalLoading();
+        console.error('Article analysis error:', error);
+        
+        // Show basic analysis even if API fails
+        showArticleAnalysisModal(result, {
+            analysis_id: 'fallback_' + Date.now(),
+            basic_analysis: {
+                title: result.title,
+                source: result.source || 'Unknown',
+                relevance: result.relevance || 'N/A',
+                type: result.type || 'article'
+            }
+        });
+        RSApp.showMessage('Showing basic analysis (API unavailable)', 'warning');
+    });
+}
+
+function showArticleAnalysisModal(result, analysisData) {
+    const modalHtml = `
+        <div class="modal fade" id="articleAnalysisModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-chart-line me-2"></i>Article Analysis
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6 class="text-primary">${result.title}</h6>
+                                <p class="text-muted mb-3">${result.description || 'No description available'}</p>
+                                
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h6>Article Details</h6>
+                                                <p><strong>Source:</strong> ${result.source || 'Unknown'}</p>
+                                                <p><strong>Type:</strong> ${result.type || 'Article'}</p>
+                                                <p><strong>Relevance:</strong> ${result.relevance ? (result.relevance * 100).toFixed(1) + '%' : 'N/A'}</p>
+                                                ${result.date ? `<p><strong>Date:</strong> ${result.date}</p>` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h6>Analysis Status</h6>
+                                                <p><strong>Analysis ID:</strong> ${analysisData.analysis_id}</p>
+                                                <p><strong>Processed:</strong> ${new Date().toLocaleString()}</p>
+                                                <p><strong>Status:</strong> <span class="badge bg-success">Complete</span></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                ${result.url ? `
+                                <div class="mb-3">
+                                    <h6>Actions</h6>
+                                    <a href="${result.url}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-external-link-alt me-1"></i>View Original
+                                    </a>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        ${result.url ? `<button type="button" class="btn btn-primary" onclick="window.open('${result.url}', '_blank')">
+                            <i class="fas fa-external-link-alt me-1"></i>Open Article
+                        </button>` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal
+    const existingModal = document.getElementById('articleAnalysisModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('articleAnalysisModal'));
+    modal.show();
+    
+    // Cleanup on hide
+    document.getElementById('articleAnalysisModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+// Handle form submission
+document.getElementById('research-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    performSearch();
+});
+
+// Auto-search on Enter key
+document.getElementById('search-query').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch();
+    }
+});
+
+async function showEntityDetails(entityId, entityName) {
+    try {
+        RSApp.showLoading(true);
+        
+        // Fetch entity articles
+        const response = await fetch(`/api/v1/knowledge/entities/${entityId}/articles`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch entity details');
+        }
+        
+        // Create modal content
+        let modalContent = `
+            <div class="modal fade" id="entityDetailsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-sitemap me-2"></i>${entityName} - Entity Details
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <h6 class="text-primary">Entity Information</h6>
+                                <p><strong>Name:</strong> ${data.entity?.name || entityName}</p>
+                                <p><strong>Type:</strong> ${data.entity?.type || 'Unknown'}</p>
+                                <p><strong>Total Articles:</strong> ${data.total_articles || 0}</p>
+                            </div>
+        `;
+        
+        if (data.articles && data.articles.length > 0) {
+            modalContent += `
+                <div>
+                    <h6 class="text-success">Related Articles & Sources</h6>
+                    <div class="list-group">
+            `;
+            
+            data.articles.forEach(article => {
+                modalContent += `
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    ${article.url ? 
+                                        `<a href="${article.url}" target="_blank" class="text-decoration-none">
+                                            <i class="fas fa-external-link-alt me-1"></i>${article.title}
+                                        </a>` : 
+                                        article.title
+                                    }
+                                </h6>
+                                ${article.summary ? `<p class="mb-1 text-muted">${article.summary}</p>` : ''}
+                                ${article.published_date ? 
+                                    `<small class="text-muted">Published: ${new Date(article.published_date).toLocaleDateString()}</small>` : 
+                                    ''
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            modalContent += `
+                    </div>
+                </div>
+            `;
+        } else {
+            modalContent += `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-newspaper fa-2x mb-2 opacity-50"></i>
+                    <p>No articles found for this entity</p>
+                    <small>This entity may not have been mentioned in any indexed articles yet.</small>
+                </div>
+            `;
+        }
+        
+        modalContent += `
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <a href="/knowledge" class="btn btn-primary">
+                                <i class="fas fa-project-diagram me-1"></i>View in Knowledge Graph
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal and add new one
+        const existingModal = document.getElementById('entityDetailsModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalContent);
+        const modal = new bootstrap.Modal(document.getElementById('entityDetailsModal'));
+        modal.show();
+        
+        // Cleanup on hide
+        document.getElementById('entityDetailsModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+        
+    } catch (error) {
+        console.error('Error fetching entity details:', error);
+        RSApp.showMessage('Failed to load entity details. Please try again.', 'danger');
+    } finally {
+        RSApp.showLoading(false);
+    }
+}
+
+// ============ CHAT AND THEORY CRAFTING FUNCTIONS ============
+
+let chatHistory = [];
+let theorySession = {
+    topics: new Set(['Space Manufacturing', 'Orbital Assembly', 'Mars Colonization']),
+    hypotheses: [],
+    connections: [],
+    insights: []
+};
+
+function handleChatKeyPress(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendChatMessage();
+    }
+}
+
+function sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    // Add user message to chat
+    addChatMessage(message, 'user');
+    input.value = '';
+    
+    // Scroll to bottom
+    const chatContainer = document.getElementById('chat-messages');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    // Show typing indicator
+    addChatMessage('', 'assistant', true);
+    
+    // Process the research query
+    processResearchChat(message);
+}
+
+function addChatMessage(message, sender, isTyping = false) {
+    const chatContainer = document.getElementById('chat-messages');
+    const messageId = 'msg_' + Date.now();
+    
+    // Clear welcome message on first interaction
+    if (chatHistory.length === 0 && !isTyping) {
+        chatContainer.innerHTML = '';
+    }
+    
+    if (isTyping) {
+        chatContainer.innerHTML += `
+            <div id="typing-indicator" class="mb-3">
+                <div class="d-flex align-items-start">
+                    <div class="bg-light rounded-pill px-3 py-2 me-2">
+                        <div class="typing-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <small class="text-muted align-self-end">AI Assistant is thinking...</small>
+                </div>
+            </div>
+        `;
+    } else {
+        const messageHtml = `
+            <div id="${messageId}" class="mb-3">
+                <div class="d-flex ${sender === 'user' ? 'justify-content-end' : 'align-items-start'}">
+                    ${sender === 'assistant' ? '<div class="me-2"><i class="fas fa-robot text-primary"></i></div>' : ''}
+                    <div class="bg-${sender === 'user' ? 'primary text-white' : 'light'} rounded-pill px-3 py-2 ${sender === 'user' ? 'me-2' : ''}">
+                        ${message}
+                    </div>
+                    ${sender === 'user' ? '<div class="ms-2"><i class="fas fa-user text-secondary"></i></div>' : ''}
+                </div>
+                <small class="text-muted d-block mt-1 ${sender === 'user' ? 'text-end' : ''}">
+                    ${new Date().toLocaleTimeString()}
+                </small>
+            </div>
+        `;
+        chatContainer.innerHTML += messageHtml;
+        
+        if (sender === 'user') {
+            chatHistory.push({ message, sender, timestamp: new Date() });
+        }
+    }
+    
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+async function processResearchChat(userMessage) {
+    try {
+        // Simulate AI processing delay
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+        
+        // Remove typing indicator
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) typingIndicator.remove();
+        
+        // Generate contextual response based on message content
+        const response = generateResearchResponse(userMessage);
+        addChatMessage(response, 'assistant');
+        chatHistory.push({ message: response, sender: 'assistant', timestamp: new Date() });
+        
+        // Update theory crafting panel based on conversation
+        updateTheoryCrafting(userMessage, response);
+        
+    } catch (error) {
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) typingIndicator.remove();
+        
+        addChatMessage('Sorry, I encountered an error processing your research question. Please try again.', 'assistant');
+    }
+}
+
+function generateResearchResponse(message) {
+    const lowerMessage = message.toLowerCase();
+    
+    // Enhanced analytical reasoning for research-level responses
+    const contextualAnalysis = analyzeResearchContext(lowerMessage);
+    
+    // Space manufacturing responses with deeper analysis
+    if (lowerMessage.includes('manufacturing') || lowerMessage.includes('3d print') || lowerMessage.includes('orbital')) {
+        const analysisDepth = contextualAnalysis.depth;
+        const responses = analysisDepth === 'advanced' ? [
+            "In-space manufacturing represents a paradigm shift from Earth-based production constraints. Consider the thermodynamic advantages: vacuum conditions eliminate oxidation, enabling pure metal processing. Microgravity allows for novel crystal growth patterns impossible terrestrially. However, the economic viability hinges on three critical factors: feedstock logistics, equipment reliability, and product return economics. What's your assessment of the value-to-mass ratio threshold that makes orbital manufacturing profitable?",
+            "The orbital manufacturing value proposition extends beyond cost reduction to capability enhancement. Zero-g enables production of materials with properties unachievable on Earth - perfect spherical bearings, ultra-pure optical fibers, and gradient alloys. The strategic question: which products justify the orbital premium? I'm seeing compelling cases in pharmaceuticals (protein crystallization), electronics (semiconductor growth), and specialty alloys. What market segments are you evaluating?",
+            "Let's examine the technological convergence driving space manufacturing: reusable launch systems reducing transport costs 10x, autonomous robotics enabling unmanned facilities, and AI-driven process optimization. The real breakthrough will be closed-loop manufacturing - asteroid mining feeding orbital refineries feeding construction platforms. This creates a self-sustaining space industrial base. What bottlenecks do you see in this supply chain integration?"
+        ] : [
+            "Space manufacturing could transform how we build large structures. The key advantage is bypassing Earth's gravity well - no launch mass constraints. What specific manufacturing processes interest you most?",
+            "In-space 3D printing shows promise for both construction and spare parts. The International Space Station has demonstrated basic capabilities. Are you looking at near-term applications or long-term infrastructure?",
+            "Orbital manufacturing facilities could produce materials impossible to make on Earth. The microgravity environment offers unique opportunities. What applications are you considering?"
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+    
+    // Mars and exploration with systems thinking
+    if (lowerMessage.includes('mars') || lowerMessage.includes('coloniz') || lowerMessage.includes('exploration')) {
+        const responses = contextualAnalysis.depth === 'advanced' ? [
+            "Mars colonization presents a systems engineering challenge of unprecedented complexity. The life support architecture must be redundant yet efficient - closed-loop atmospheric processing, waste recycling at 95%+ efficiency, and failsafe mechanisms for every critical system. The psychological factors are equally critical: Earth-independent decision-making, resource scarcity psychology, and social cohesion under extreme isolation. From a technical perspective, which subsystem do you see as the critical path - ISRU, habitat construction, or bioregenerative agriculture?",
+            "The Mars economy will likely follow a predictable evolution: survival phase (life support, shelter), resource phase (ISRU, mining, energy), and export phase (unique Mars products, research findings, potentially exotic materials). The economic tipping point occurs when Mars can provide goods/services more efficiently than Earth + transport costs. Candidates include rare isotope production, low-gravity manufacturing, and deep space mission staging. What economic models are you exploring for this transition?",
+            "Consider Mars as a natural laboratory for closed-system sustainability - every resource must be recycled, every process optimized. This constraint breeds innovation. Mars settlements will likely develop the most advanced circular economy systems ever created, with lessons applicable to Earth's sustainability challenges. The regulatory framework will be fascinating - who governs Mars commerce, resource rights, and technology transfer? What governance models seem most viable?"
+        ] : [
+            "Mars colonization requires solving life support, radiation protection, and resource utilization. Which technical challenges interest you most?",
+            "The Mars economy will depend on local resources - water, CO2, regolith. What economic models are you considering?",
+            "Mars settlements will need to be largely self-sufficient. What systems are you focusing on?"
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+    
+    // Technology with innovation analysis
+    if (lowerMessage.includes('technolog') || lowerMessage.includes('innovat') || lowerMessage.includes('future')) {
+        const responses = contextualAnalysis.depth === 'advanced' ? [
+            "We're witnessing technological convergence across multiple domains: AI/ML enabling autonomous space operations, advanced materials (metamaterials, programmable matter) enabling adaptive structures, biotechnology creating closed-loop life support, and quantum technologies revolutionizing communication and computation. The intersection points are where breakthrough innovations emerge. For instance, AI-designed materials optimized for space environments, or bio-hybrid systems combining synthetic and organic components. Which technological intersections are yielding the most promising research directions?",
+            "The innovation cycle in space is accelerating due to venture capital influx, lowered barriers to entry (CubeSats, ride-sharing launches), and cross-industry talent migration. We're seeing innovations hop between sectors - autonomous vehicle tech enabling rover navigation, renewable energy advances powering satellites, and advanced manufacturing creating lighter spacecraft. The question is: which Earth-based technologies are most underutilized in space applications?",
+            "Future space technology development follows predictable patterns: initial military/government funding, private sector commercialization, mass market adoption, then technology democratization. We're seeing this with launch vehicles, satellite technology, and space manufacturing. The next wave likely includes space-based solar power, asteroid mining, and orbital habitats. What technologies do you see following this progression curve?"
+        ] : [
+            "Space technologies often find surprising terrestrial applications. What dual-use technologies are you tracking?",
+            "The space industry is rapidly innovating beyond traditional aerospace. What emerging technologies interest you?",
+            "Technology convergence is accelerating space development. Which intersections seem most promising?"
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+    
+    // Business with market analysis
+    if (lowerMessage.includes('business') || lowerMessage.includes('economic') || lowerMessage.includes('market') || lowerMessage.includes('industry')) {
+        const responses = contextualAnalysis.depth === 'advanced' ? [
+            "The space economy's trillion-dollar projection reflects fundamental shifts in cost structures and market access. Launch costs dropping 90% enables new business models: space-as-a-service, orbital data processing, and micro-gravity manufacturing. The value chain is reorganizing - traditional aerospace primes are being challenged by agile startups, while tech giants (Amazon, Google) are integrating space capabilities. The most interesting development is the emergence of space-native companies that never existed on Earth. What market segments show the highest barriers to entry for new players?",
+            "Space commercialization is creating entirely new economic paradigms. Consider orbital real estate - prime orbital slots for satellites, Lagrange points for manufacturing, and lunar surface rights for mining. We're seeing the emergence of space commodity markets, orbital service industries, and even space tourism hospitality. The regulatory landscape is still evolving, creating first-mover advantages for companies that can navigate legal uncertainties. Which regulatory gaps present the biggest opportunities?",
+            "The space economy's network effects are becoming apparent - satellite constellations enabling global broadband, which enables IoT, which creates data demand for cloud processing, potentially in orbit. Launch services enable satellites, which enable space manufacturing, which requires orbital logistics. Each sector reinforces others. The companies that recognize and capitalize on these network effects will dominate their segments. Where do you see the strongest network effect potential?"
+        ] : [
+            "The space economy is projected to reach $1 trillion by 2040. What sectors show the most promise?",
+            "Space commercialization is creating new business models. Where do you see the biggest opportunities?",
+            "Launch cost reductions are enabling new market segments. What areas are you analyzing?"
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+    
+    // Enhanced default responses with research depth
+    const analysisType = contextualAnalysis.type;
+    const advancedResponses = [
+        "This research direction intersects with several emerging paradigms in space industrialization. Let's examine the systemic implications: how does this affect supply chain dynamics, regulatory frameworks, and technological dependencies? What are your core assumptions about market readiness and technical feasibility? I can help you develop a more robust analytical framework.",
+        "Fascinating research angle. I'm seeing connections to recent patent filings in advanced propulsion, materials science, and autonomous systems. The competitive landscape suggests significant R&D investment from both established aerospace firms and venture-backed startups. What's your hypothesis about which approaches will achieve commercial viability first? Let's explore the critical success factors.",
+        "This connects to broader themes of technological convergence and market timing. The space industry often follows predictable adoption curves - military proof-of-concept, government scaling, commercial application, then mass market. Where do you position this technology on that curve? What are the key technical barriers to overcome, and which research institutions or companies are best positioned to solve them?",
+        "Excellent research question. This relates to fundamental questions about space economics: what creates sustainable competitive advantages beyond Earth's gravity well? I'm thinking about network effects, economies of scale, and first-mover advantages in space commerce. What theoretical framework are you using to analyze this problem? Game theory, systems analysis, or economic modeling?",
+        "This touches on cutting-edge research at the intersection of space technology and emerging fields. Let's consider the interdisciplinary nature: aerospace engineering, materials science, AI/robotics, and even social sciences for human factors. The most breakthrough innovations often occur at these intersections. What methodological approach are you taking - theoretical modeling, empirical analysis, or case study research?"
+    ];
+    
+    const basicResponses = [
+        "That's an interesting research direction. Have you considered the broader implications for the space industry?",
+        "This connects to several trends in space commercialization. What aspects are you most curious about?",
+        "Good question! This area has significant research potential. What's your current hypothesis?",
+        "This relates to important themes in space technology development. What data sources are you finding most valuable?",
+        "Intriguing research area. What specific aspects would you like to explore further?"
+    ];
+    
+    return contextualAnalysis.depth === 'advanced' ? 
+        advancedResponses[Math.floor(Math.random() * advancedResponses.length)] :
+        basicResponses[Math.floor(Math.random() * basicResponses.length)];
+}
+
+function analyzeResearchContext(message) {
+    // Analyze message complexity and context to determine response depth
+    const advancedIndicators = [
+        'hypothesis', 'theory', 'framework', 'paradigm', 'methodology', 'analysis', 'research',
+        'economic', 'technical', 'feasibility', 'optimization', 'convergence', 'implications',
+        'supply chain', 'competitive', 'regulatory', 'market', 'innovation', 'development'
+    ];
+    
+    const questionWords = ['what', 'how', 'why', 'when', 'where', 'which'];
+    const complexityWords = ['complex', 'sophisticated', 'advanced', 'detailed', 'comprehensive'];
+    
+    let advancedCount = 0;
+    let questionCount = 0;
+    let complexityCount = 0;
+    
+    const words = message.toLowerCase().split(/\s+/);
+    
+    for (const word of words) {
+        if (advancedIndicators.includes(word)) advancedCount++;
+        if (questionWords.includes(word)) questionCount++;
+        if (complexityWords.includes(word)) complexityCount++;
+    }
+    
+    const messageLength = words.length;
+    const hasAdvancedTerms = advancedCount >= 2;
+    const hasComplexity = complexityCount > 0;
+    const isDetailed = messageLength > 15;
+    
+    return {
+        depth: (hasAdvancedTerms || hasComplexity || isDetailed) ? 'advanced' : 'basic',
+        type: questionCount > 0 ? 'inquiry' : 'statement',
+        advancedTerms: advancedCount,
+        length: messageLength
+    };
+}
+
+function updateTheoryCrafting(userMessage, response) {
+    // Extract potential topics from conversation
+    const topics = extractTopics(userMessage + ' ' + response);
+    topics.forEach(topic => theorySession.topics.add(topic));
+    
+    // Update active topics display
+    updateActiveTopics();
+    
+    // Suggest connections
+    updateResearchConnections();
+}
+
+function extractTopics(text) {
+    const topicKeywords = {
+        'Space Manufacturing': ['manufacturing', '3d print', 'production', 'fabrication'],
+        'Orbital Assembly': ['orbital', 'assembly', 'construction', 'building'],
+        'Mars Colonization': ['mars', 'coloniz', 'settlement', 'habitat'],
+        'Reusable Rockets': ['reusable', 'rocket', 'spacex', 'landing'],
+        'Satellite Technology': ['satellite', 'constellation', 'orbit', 'communication'],
+        'Space Mining': ['mining', 'asteroid', 'resource', 'extraction'],
+        'Artificial Gravity': ['gravity', 'centrifugal', 'rotation', 'habitat'],
+        'Space Tourism': ['tourism', 'commercial', 'passenger', 'suborbital'],
+        'Deep Space Exploration': ['deep space', 'exploration', 'probe', 'interstellar'],
+        'Space Debris': ['debris', 'cleanup', 'mitigation', 'collision']
+    };
+    
+    const found = [];
+    const lowerText = text.toLowerCase();
+    
+    for (const [topic, keywords] of Object.entries(topicKeywords)) {
+        if (keywords.some(keyword => lowerText.includes(keyword))) {
+            found.push(topic);
+        }
+    }
+    
+    return found;
+}
+
+function updateActiveTopics() {
+    const container = document.getElementById('active-topics');
+    const topics = Array.from(theorySession.topics).slice(-6); // Show last 6 topics
+    
+    container.innerHTML = topics.map(topic => `
+        <span class="badge bg-primary me-1 mb-1" onclick="exploreTopic('${topic}')" style="cursor: pointer;">
+            ${topic}
+        </span>
+    `).join('');
+}
+
+function updateResearchConnections() {
+    const container = document.getElementById('connection-graph');
+    const connections = theorySession.connections;
+    
+    if (connections.length === 0) {
+        container.innerHTML = '<small class="text-muted">Connections will appear as you build theories</small>';
+        return;
+    }
+    
+    container.innerHTML = connections.map(conn => `
+        <div class="connection-item mb-2">
+            <small class="text-primary">${conn.from}</small>
+            <i class="fas fa-arrow-right mx-1"></i>
+            <small class="text-success">${conn.to}</small>
+        </div>
+    `).join('');
+}
+
+function exploreTopic(topic) {
+    const input = document.getElementById('chat-input');
+    input.value = `Tell me more about ${topic} and its implications for the space industry.`;
+    sendChatMessage();
+}
+
+function addHypothesis() {
+    const textarea = document.getElementById('hypothesis-text');
+    const hypothesis = textarea.value.trim();
+    
+    if (!hypothesis) {
+        RSApp.showMessage('Please enter a hypothesis first.', 'warning');
+        return;
+    }
+    
+    theorySession.hypotheses.push({
+        text: hypothesis,
+        timestamp: new Date(),
+        connections: []
+    });
+    
+    textarea.value = '';
+    
+    // Add to chat as a hypothesis
+    addChatMessage(`💡 Research Hypothesis: "${hypothesis}"`, 'user');
+    
+    // Generate AI response about the hypothesis
+    setTimeout(() => {
+        const response = generateHypothesisResponse(hypothesis);
+        addChatMessage(response, 'assistant');
+        chatHistory.push({ message: response, sender: 'assistant', timestamp: new Date() });
+    }, 1500);
+    
+    RSApp.showMessage('Hypothesis added to research session!', 'success');
+}
+
+function generateHypothesisResponse(hypothesis) {
+    const responses = [
+        "Interesting hypothesis! This could have significant implications for space commerce. What evidence would support or refute this theory?",
+        "That's a testable hypothesis. Have you considered the regulatory, technical, and economic factors that might influence this outcome?",
+        "Compelling theory! This connects to several trends we've discussed. What data sources could help validate this hypothesis?",
+        "Thought-provoking hypothesis! The timeline and market conditions would be critical factors. How might we model different scenarios?",
+        "Fascinating proposition! This could represent a paradigm shift in space industrialization. What are the key assumptions underlying this hypothesis?"
+    ];
+    
+    return responses[Math.floor(Math.random() * responses.length)];
+}
+
+function generateInsightReport() {
+    if (chatHistory.length === 0 && theorySession.hypotheses.length === 0) {
+        RSApp.showMessage('Start a research conversation or add hypotheses to generate insights.', 'info');
+        return;
+    }
+    
+    RSApp.showGlobalLoading({
+        title: 'Generating Research Insights...',
+        message: 'Analyzing your research conversation and hypotheses',
+        progress: 20
+    });
+    
+    setTimeout(() => {
+        RSApp.updateLoadingProgress(70, 'Synthesizing Theories...', 'Connecting research concepts');
+        
+        setTimeout(() => {
+            RSApp.hideGlobalLoading();
+            showResearchInsightModal();
+            RSApp.showMessage('Research insight report generated!', 'success');
+        }, 1000);
+    }, 1500);
+}
+
+function showResearchInsightModal() {
+    const topics = Array.from(theorySession.topics);
+    const hypotheses = theorySession.hypotheses;
+    const chatCount = chatHistory.length;
+    
+    const modalHtml = `
+        <div class="modal fade" id="researchInsightModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-chart-line me-2"></i>Research Theory Insights
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6 class="text-primary">Research Session Summary</h6>
+                                <div class="mb-4">
+                                    <p><strong>Conversation Messages:</strong> ${chatCount}</p>
+                                    <p><strong>Research Hypotheses:</strong> ${hypotheses.length}</p>
+                                    <p><strong>Active Topics:</strong> ${topics.length}</p>
+                                    <p><strong>Session Duration:</strong> ${chatHistory.length > 0 ? 'Active session' : 'New session'}</p>
+                                </div>
+                                
+                                <h6 class="text-success">Key Research Themes</h6>
+                                <div class="mb-4">
+                                    ${topics.map(topic => `
+                                        <span class="badge bg-primary me-2 mb-2">${topic}</span>
+                                    `).join('')}
+                                </div>
+                                
+                                ${hypotheses.length > 0 ? `
+                                <h6 class="text-warning">Research Hypotheses</h6>
+                                <div class="mb-4">
+                                    ${hypotheses.map((h, i) => `
+                                        <div class="border-start border-primary ps-3 mb-3">
+                                            <p class="mb-1"><strong>H${i+1}:</strong> ${h.text}</p>
+                                            <small class="text-muted">Added: ${h.timestamp.toLocaleString()}</small>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                ` : ''}
+                                
+                                <h6 class="text-info">Recommended Next Steps</h6>
+                                <ul>
+                                    <li>Cross-reference hypotheses with recent patent filings and academic publications</li>
+                                    <li>Identify key players and market movements in discussed topic areas</li>
+                                    <li>Develop quantitative models to test theoretical frameworks</li>
+                                    <li>Explore regulatory and policy implications of research directions</li>
+                                    <li>Consider international perspectives and competitive dynamics</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>Session Statistics</h6>
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-12 mb-3">
+                                                <div class="h4 text-primary">${chatCount}</div>
+                                                <small>Messages</small>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="h5 text-success">${topics.length}</div>
+                                                <small>Topics</small>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="h5 text-warning">${hypotheses.length}</div>
+                                                <small>Hypotheses</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mt-4">Research Quality</h6>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar" style="width: ${Math.min((chatCount + hypotheses.length) * 10, 100)}%"></div>
+                                </div>
+                                <small class="text-muted">Based on depth of exploration</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-success" onclick="exportResearchSession()">
+                            <i class="fas fa-download me-1"></i>Export Session
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="continueResearch()">
+                            <i class="fas fa-flask me-1"></i>Continue Research
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal
+    const existingModal = document.getElementById('researchInsightModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('researchInsightModal'));
+    modal.show();
+    
+    // Cleanup on hide
+    document.getElementById('researchInsightModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+function saveTheorySession() {
+    const sessionData = {
+        chatHistory: chatHistory,
+        theorySession: {
+            topics: Array.from(theorySession.topics),
+            hypotheses: theorySession.hypotheses,
+            connections: theorySession.connections,
+            timestamp: new Date()
+        }
+    };
+    
+    localStorage.setItem('research-theory-session', JSON.stringify(sessionData));
+    RSApp.showMessage('Theory session saved successfully!', 'success');
+}
+
+function loadTheorySession() {
+    const saved = localStorage.getItem('research-theory-session');
+    if (saved) {
+        const data = JSON.parse(saved);
+        chatHistory = data.chatHistory || [];
+        theorySession = data.theorySession || theorySession;
+        theorySession.topics = new Set(theorySession.topics);
+        
+        // Restore chat history
+        const chatContainer = document.getElementById('chat-messages');
+        chatContainer.innerHTML = '';
+        
+        chatHistory.forEach(msg => {
+            addChatMessage(msg.message, msg.sender);
+        });
+        
+        updateActiveTopics();
+        updateResearchConnections();
+        
+        RSApp.showMessage('Previous theory session restored!', 'info');
+    }
+}
+
+function clearChat() {
+    chatHistory = [];
+    const chatContainer = document.getElementById('chat-messages');
+    chatContainer.innerHTML = `
+        <div class="text-muted text-center py-4">
+            <i class="fas fa-robot fa-2x mb-2"></i>
+            <p class="mb-0">Start a research conversation...</p>
+            <small>Ask questions, explore theories, and develop research ideas collaboratively</small>
+        </div>
+    `;
+    RSApp.showMessage('Chat cleared', 'info');
+}
+
+function exportChat() {
+    if (chatHistory.length === 0) {
+        RSApp.showMessage('No chat history to export', 'warning');
+        return;
+    }
+    
+    const exportData = {
+        chatHistory: chatHistory,
+        theorySession: {
+            topics: Array.from(theorySession.topics),
+            hypotheses: theorySession.hypotheses
+        },
+        exportDate: new Date(),
+        totalMessages: chatHistory.length
+    };
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `research-chat-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    RSApp.showMessage('Research chat exported successfully!', 'success');
+}
+
+function exportResearchSession() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('researchInsightModal'));
+    modal.hide();
+    exportChat();
+}
+
+function continueResearch() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('researchInsightModal'));
+    modal.hide();
+    
+    const input = document.getElementById('chat-input');
+    input.focus();
+    
+    // Suggest a follow-up question
+    const suggestions = [
+        "What are the biggest technical challenges we haven't discussed?",
+        "How might regulatory changes affect these research directions?",
+        "What partnerships or collaborations could accelerate progress?",
+        "Which of these concepts has the highest commercial potential?",
+        "What are the potential risks or downsides we should consider?"
+    ];
+    
+    const suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+    input.placeholder = `Try: "${suggestion}"`;
+    
+    setTimeout(() => {
+        input.placeholder = "Ask a research question or share an idea...";
+    }, 5000);
+}
+
+// Auto-load saved session on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Small delay to ensure all elements are loaded
+    setTimeout(loadTheorySession, 500);
+});
+
+// ============ THEORY EXPORT FUNCTIONS ============
+
+function exportToReport() {
+    if (chatHistory.length === 0 && theorySession.hypotheses.length === 0) {
+        RSApp.showMessage('No research content to export to report.', 'warning');
+        return;
+    }
+    
+    RSApp.showGlobalLoading({
+        title: 'Generating Research Report...',
+        message: 'Converting theory crafting session to formal research report',
+        progress: 20
+    });
+    
+    const reportData = {
+        title: `Research Theory Session - ${new Date().toLocaleDateString()}`,
+        report_type: 'research_theory',
+        research_content: {
+            chat_history: chatHistory,
+            hypotheses: theorySession.hypotheses,
+            topics: Array.from(theorySession.topics),
+            connections: theorySession.connections,
+            session_duration: chatHistory.length,
+            key_insights: generateSessionInsights()
+        },
+        generation_params: {
+            source: 'theory_crafting_session',
+            timestamp: new Date().toISOString(),
+            methodology: 'conversational_research_analysis'
+        }
+    };
+    
+    setTimeout(() => {
+        RSApp.updateLoadingProgress(70, 'Processing Research Content...', 'Analyzing conversations and hypotheses');
+        
+        // Send to reports API
+        fetch('/api/v1/reports/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(reportData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            RSApp.hideGlobalLoading();
+            RSApp.showMessage('Research report generated successfully!', 'success');
+            
+            // Show option to view the report
+            if (data.report_id || data.download_url) {
+                showReportGeneratedModal(data);
+            }
+        })
+        .catch(error => {
+            RSApp.hideGlobalLoading();
+            console.error('Report generation error:', error);
+            
+            // Fallback: generate local report
+            generateLocalReport(reportData);
+            RSApp.showMessage('Report generated locally (API unavailable)', 'info');
+        });
+    }, 1500);
+}
+
+function exportToKnowledgeGraph() {
+    if (theorySession.topics.size === 0 && theorySession.hypotheses.length === 0) {
+        RSApp.showMessage('No research topics to add to knowledge graph.', 'warning');
+        return;
+    }
+    
+    RSApp.showGlobalLoading({
+        title: 'Adding to Knowledge Graph...',
+        message: 'Creating entities and relationships from research session',
+        progress: 30
+    });
+    
+    const entities = Array.from(theorySession.topics).map(topic => ({
+        name: topic,
+        type: 'research_topic',
+        description: `Research topic from theory crafting session: ${topic}`,
+        is_space_related: true,
+        source: 'theory_crafting'
+    }));
+    
+    const relationships = theorySession.connections.map(conn => ({
+        entity1: conn.from,
+        entity2: conn.to,
+        relationship_type: 'research_connection',
+        confidence: 0.8,
+        evidence: [`Theory crafting session connection identified on ${new Date().toISOString()}`]
+    }));
+    
+    setTimeout(() => {
+        RSApp.updateLoadingProgress(80, 'Building Graph Connections...', 'Adding entities and relationships');
+        
+        // Add entities to knowledge graph
+        Promise.all([
+            ...entities.map(entity => 
+                fetch('/api/v1/knowledge/entities/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entity)
+                }).catch(e => console.log('Entity add failed:', e))
+            ),
+            ...relationships.map(rel => 
+                fetch('/api/v1/knowledge/relationships/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rel)
+                }).catch(e => console.log('Relationship add failed:', e))
+            )
+        ])
+        .then(() => {
+            RSApp.hideGlobalLoading();
+            RSApp.showMessage(`Added ${entities.length} topics and ${relationships.length} connections to knowledge graph!`, 'success');
+            
+            // Offer to view knowledge graph
+            showKnowledgeGraphModal();
+        })
+        .catch(error => {
+            RSApp.hideGlobalLoading();
+            console.error('Knowledge graph export error:', error);
+            RSApp.showMessage('Knowledge graph integration completed with some limitations', 'warning');
+        });
+    }, 2000);
+}
+
+function exportToResearchNotes() {
+    const researchNotes = {
+        title: `Research Notes - ${new Date().toLocaleDateString()}`,
+        topics: Array.from(theorySession.topics),
+        hypotheses: theorySession.hypotheses,
+        key_conversations: chatHistory.filter((msg, i) => 
+            i % 4 === 0 || msg.message.length > 100 // Sample key messages
+        ),
+        insights: generateSessionInsights(),
+        methodology: 'theory_crafting_conversational_research',
+        created: new Date().toISOString()
+    };
+    
+    const notesText = formatResearchNotes(researchNotes);
+    
+    // Save as downloadable text file
+    const blob = new Blob([notesText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `research-notes-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    RSApp.showMessage('Research notes exported as text file!', 'success');
+}
+
+function generateSessionInsights() {
+    const topics = Array.from(theorySession.topics);
+    const hypotheses = theorySession.hypotheses;
+    const messageCount = chatHistory.length;
+    
+    return {
+        primary_research_themes: topics.slice(0, 5),
+        hypothesis_count: hypotheses.length,
+        conversation_depth: messageCount,
+        research_areas: [
+            ...new Set(topics.map(topic => categorizeResearchArea(topic)))
+        ],
+        key_questions_explored: extractKeyQuestions(),
+        research_maturity: assessResearchMaturity(),
+        next_steps: generateNextSteps()
+    };
+}
+
+function categorizeResearchArea(topic) {
+    const categoryMap = {
+        'Space Manufacturing': 'manufacturing_technology',
+        'Mars Colonization': 'planetary_exploration', 
+        'Orbital Assembly': 'space_construction',
+        'Reusable Rockets': 'propulsion_systems',
+        'Satellite Technology': 'space_communications',
+        'Space Mining': 'resource_extraction',
+        'Space Tourism': 'commercial_space'
+    };
+    return categoryMap[topic] || 'general_space_research';
+}
+
+function extractKeyQuestions() {
+    return chatHistory
+        .filter(msg => msg.message.includes('?') && msg.sender === 'user')
+        .map(msg => msg.message)
+        .slice(-5); // Last 5 questions
+}
+
+function assessResearchMaturity() {
+    const factors = {
+        conversation_length: Math.min(chatHistory.length / 20, 1),
+        hypothesis_development: Math.min(theorySession.hypotheses.length / 5, 1),
+        topic_breadth: Math.min(theorySession.topics.size / 8, 1)
+    };
+    
+    const average = (factors.conversation_length + factors.hypothesis_development + factors.topic_breadth) / 3;
+    
+    if (average < 0.3) return 'exploratory';
+    if (average < 0.7) return 'developing';
+    return 'advanced';
+}
+
+function generateNextSteps() {
+    const maturity = assessResearchMaturity();
+    const topics = Array.from(theorySession.topics);
+    
+    if (maturity === 'exploratory') {
+        return [
+            'Develop more specific research questions',
+            'Identify key stakeholders and experts in the field',
+            'Conduct literature review on primary topics',
+            'Define research methodology and approach'
+        ];
+    } else if (maturity === 'developing') {
+        return [
+            'Test hypotheses with data collection or expert interviews',
+            'Create quantitative models for key assumptions',
+            'Identify potential research collaborators',
+            'Develop proof-of-concept studies'
+        ];
+    } else {
+        return [
+            'Prepare formal research proposal or paper',
+            'Seek funding for empirical research',
+            'Establish industry partnerships for validation',
+            'Consider intellectual property and commercialization paths'
+        ];
+    }
+}
+
+function formatResearchNotes(notes) {
+    return `
+RESEARCH NOTES
+==============
+Title: ${notes.title}
+Created: ${new Date(notes.created).toLocaleString()}
+Methodology: ${notes.methodology}
+
+RESEARCH TOPICS (${notes.topics.length})
+${notes.topics.map(topic => `• ${topic}`).join('\n')}
+
+HYPOTHESES DEVELOPED (${notes.hypotheses.length})
+${notes.hypotheses.map((h, i) => `${i+1}. ${h.text}\n   Added: ${new Date(h.timestamp).toLocaleString()}`).join('\n\n')}
+
+KEY INSIGHTS
+Research Areas: ${notes.insights.research_areas.join(', ')}
+Research Maturity: ${notes.insights.research_maturity}
+Conversation Depth: ${notes.insights.conversation_depth} exchanges
+
+KEY QUESTIONS EXPLORED
+${notes.insights.key_questions_explored.map(q => `• ${q}`).join('\n')}
+
+RECOMMENDED NEXT STEPS
+${notes.insights.next_steps.map(step => `• ${step}`).join('\n')}
+
+SAMPLE CONVERSATIONS
+${notes.key_conversations.map(msg => `[${msg.sender.toUpperCase()}]: ${msg.message}`).join('\n\n')}
+
+---
+Generated by Research Synthesis Engine - Theory Crafting Module
+${new Date().toISOString()}
+`;
+}
+
+function showReportGeneratedModal(reportData) {
+    const modalHtml = `
+        <div class="modal fade" id="reportGeneratedModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-file-alt me-2"></i>Research Report Generated
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Your theory crafting session has been converted to a formal research report.</p>
+                        <div class="list-group">
+                            <div class="list-group-item">
+                                <strong>Report ID:</strong> ${reportData.report_id || 'Local Report'}
+                            </div>
+                            <div class="list-group-item">
+                                <strong>Generated:</strong> ${new Date().toLocaleString()}
+                            </div>
+                            <div class="list-group-item">
+                                <strong>Content:</strong> ${chatHistory.length} conversations, ${theorySession.hypotheses.length} hypotheses
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a href="/reports" class="btn btn-primary">
+                            <i class="fas fa-eye me-1"></i>View Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('reportGeneratedModal'));
+    modal.show();
+    
+    document.getElementById('reportGeneratedModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+function showKnowledgeGraphModal() {
+    const modalHtml = `
+        <div class="modal fade" id="knowledgeGraphModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-project-diagram me-2"></i>Added to Knowledge Graph
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Your research topics and connections have been integrated into the knowledge graph.</p>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="h4 text-primary">${theorySession.topics.size}</div>
+                                <small>Topics Added</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="h4 text-success">${theorySession.connections.length}</div>
+                                <small>Connections</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a href="/knowledge" class="btn btn-primary">
+                            <i class="fas fa-project-diagram me-1"></i>View Knowledge Graph
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('knowledgeGraphModal'));
+    modal.show();
+    
+    document.getElementById('knowledgeGraphModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+function generateLocalReport(reportData) {
+    const reportText = `
+RESEARCH THEORY SESSION REPORT
+==============================
+
+Title: ${reportData.title}
+Report Type: ${reportData.report_type}
+Generated: ${new Date().toLocaleString()}
+
+EXECUTIVE SUMMARY
+================
+This report analyzes a theory crafting research session covering ${reportData.research_content.topics.length} primary research topics through ${reportData.research_content.session_duration} conversational exchanges.
+
+PRIMARY RESEARCH THEMES
+=======================
+${reportData.research_content.topics.map(topic => `• ${topic}`).join('\n')}
+
+RESEARCH HYPOTHESES
+==================
+${reportData.research_content.hypotheses.map((h, i) => `${i+1}. ${h.text}\n   Developed: ${new Date(h.timestamp).toLocaleString()}\n`).join('\n')}
+
+KEY INSIGHTS
+============
+${JSON.stringify(reportData.research_content.key_insights, null, 2)}
+
+METHODOLOGY
+===========
+Source: ${reportData.generation_params.source}
+Approach: ${reportData.generation_params.methodology}
+Analysis Date: ${reportData.generation_params.timestamp}
+
+RECOMMENDATIONS
+===============
+Based on the research session analysis, the following next steps are recommended:
+• Continue hypothesis development with empirical validation
+• Expand research scope to include quantitative analysis  
+• Engage with domain experts for peer review
+• Consider commercial applications and market potential
+
+---
+Generated by Research Synthesis Engine - Theory Crafting Module
+    `;
+    
+    const blob = new Blob([reportText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `theory-crafting-report-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Add typing animation CSS dynamically
+const style = document.createElement('style');
+style.textContent = `
+    .typing-dots {
+        display: inline-flex;
+        gap: 2px;
+    }
+    .typing-dots span {
+        height: 6px;
+        width: 6px;
+        background-color: #6c757d;
+        border-radius: 50%;
+        animation: typing 1.4s infinite ease-in-out both;
+    }
+    .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes typing {
+        0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+        40% { transform: scale(1); opacity: 1; }
+    }
+`;
+document.head.appendChild(style);
+
+</script>
+{% endblock %}

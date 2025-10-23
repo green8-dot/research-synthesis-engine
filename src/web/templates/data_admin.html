@@ -1,0 +1,579 @@
+{% extends "base.html" %}
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">{% block title %}Data Administration - Research Synthesis Engine{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-0 text-gradient">
+                    <i class="fas fa-database me-2"></i>Data Administration
+                </h1>
+                <p class="text-muted mb-0">Audit, troubleshoot, and recover data</p>
+            </div>
+            <div>
+                <button class="btn btn-danger" onclick="dataAdmin.createBackup()" aria-label="Create backup of all system data">
+                    <i class="fas fa-save me-1"></i>Create Backup
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Health Overview -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-heartbeat me-2"></i>Data Health Monitor
+                </h5>
+            </div>
+            <div class="card-body" id="health-monitor">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Component Health</h6>
+                        <div id="component-health">
+                            <div class="mb-2">
+                                <span>Articles:</span>
+                                <span class="badge bg-success float-end">Healthy</span>
+                            </div>
+                            <div class="mb-2">
+                                <span>Reports:</span>
+                                <span class="badge bg-success float-end">Healthy</span>
+                            </div>
+                            <div class="mb-2">
+                                <span>Sources:</span>
+                                <span class="badge bg-success float-end">Healthy</span>
+                            </div>
+                            <div class="mb-2">
+                                <span>Entities:</span>
+                                <span class="badge bg-warning float-end">Degraded</span>
+                            </div>
+                            <div class="mb-2">
+                                <span>Jobs:</span>
+                                <span class="badge bg-success float-end">Healthy</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Current Data Counts</h6>
+                        <div id="data-counts">
+                            <div class="mb-2">
+                                <span>Sources:</span>
+                                <span class="float-end" id="count-sources">0</span>
+                            </div>
+                            <div class="mb-2">
+                                <span>Active Jobs:</span>
+                                <span class="float-end" id="count-jobs">0</span>
+                            </div>
+                            <div class="mb-2">
+                                <span>Reports:</span>
+                                <span class="float-end" id="count-reports">0</span>
+                            </div>
+                            <div class="mb-2">
+                                <span>Last Check:</span>
+                                <span class="float-end text-muted" id="last-check">Never</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tools me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="dataAdmin.checkIntegrity()" aria-label="Check data integrity">
+                        <i class="fas fa-check-circle me-1"></i>Check Data Integrity
+                    </button>
+                    <button class="btn btn-warning" onclick="dataAdmin.createSnapshot()" aria-label="Create data snapshot">
+                        <i class="fas fa-camera me-1"></i>Create Snapshot
+                    </button>
+                    <button class="btn btn-success" onclick="dataAdmin.recoverData()" aria-label="Recover system data">
+                        <i class="fas fa-undo me-1"></i>Recover from Snapshot
+                    </button>
+                    <button class="btn btn-info" onclick="dataAdmin.persistData()" aria-label="Persist data to storage">
+                        <i class="fas fa-lock me-1"></i>Persist Transient Data
+                    </button>
+                    <button class="btn btn-secondary" onclick="dataAdmin.generateReport()" aria-label="Generate data report">
+                        <i class="fas fa-chart-bar me-1"></i>Generate Loss Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Log -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Audit Log
+                </h5>
+                <button class="btn btn-sm btn-outline-primary" onclick="dataAdmin.refreshAuditLog()" aria-label="Refresh audit log">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive"><table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Operation</th>
+                                <th>Data Type</th>
+                                <th>Data ID</th>
+                                <th>Status</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-log-body">
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">No audit entries yet</td>
+                            </tr>
+                        </tbody>
+                    </table></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Loss Report -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Data Loss Analysis
+                </h5>
+            </div>
+            <div class="card-body" id="loss-report">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Click "Generate Loss Report" to analyze data loss patterns
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Snapshot Management -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-archive me-2"></i>Snapshot Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Available snapshots for recovery:</p>
+                <div id="snapshots-list">
+                    <div class="text-center text-muted">Loading snapshots...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div class="modal fade" id="snapshotModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Data Snapshot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close dialog"></button>
+            </div>
+            <div class="modal-body">
+                <form id="snapshot-form">
+                    <div class="mb-3">
+                        <label class="form-label">Data Type</label>
+                        <select class="form-select" id="snapshot-type" required>
+                            <option value="">Select type...</option>
+                            <option value="sources">Sources</option>
+                            <option value="reports">Reports</option>
+                            <option value="jobs">Active Jobs</option>
+                            <option value="articles">Articles</option>
+                            <option value="entities">Entities</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reason</label>
+                        <input type="text" class="form-control" id="snapshot-reason" 
+                               placeholder="e.g., Before major update" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="dataAdmin.confirmSnapshot()">
+                    Create Snapshot
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="recoveryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Recover Data from Snapshot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close dialog"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This will replace current data with snapshot data.
+                </div>
+                <form id="recovery-form">
+                    <div class="mb-3">
+                        <label class="form-label">Data Type</label>
+                        <select class="form-select" id="recovery-type" required>
+                            <option value="">Select type...</option>
+                            <option value="sources">Sources</option>
+                            <option value="reports">Reports</option>
+                            <option value="jobs">Active Jobs</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Snapshot</label>
+                        <select class="form-select" id="recovery-snapshot">
+                            <option value="">Latest snapshot</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="dataAdmin.confirmRecovery()">
+                    Recover Data
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+class DataAdminSystem {
+    constructor() {
+        this.init();
+    }
+    
+    async init() {
+        await this.loadHealthStatus();
+        await this.refreshAuditLog();
+        
+        // Auto-refresh health every 30 seconds
+        setInterval(() => this.loadHealthStatus(), 30000);
+    }
+    
+    async loadHealthStatus() {
+        try {
+            const response = await fetch('/api/v1/data-admin/health');
+            const data = await response.json();
+            
+            this.updateHealthDisplay(data);
+        } catch (error) {
+            console.error('Failed to load health status:', error);
+        }
+    }
+    
+    updateHealthDisplay(data) {
+        // Update component health
+        const componentHealth = document.getElementById('component-health');
+        if (data.components && componentHealth) {
+            let html = '';
+            for (const [component, health] of Object.entries(data.components)) {
+                const badgeClass = health.status === 'healthy' ? 'bg-success' : 
+                                  health.status === 'degraded' ? 'bg-warning' : 'bg-danger';
+                html += `
+                    <div class="mb-2">
+                        <span>${component}:</span>
+                        <span class="badge ${badgeClass} float-end">${health.status}</span>
+                    </div>
+                `;
+            }
+            componentHealth.innerHTML = html;
+        }
+        
+        // Update counts
+        if (data.current_data) {
+            document.getElementById('count-sources').textContent = data.current_data.sources || 0;
+            document.getElementById('count-jobs').textContent = data.current_data.active_jobs || 0;
+            document.getElementById('count-reports').textContent = data.current_data.reports || 0;
+        }
+        
+        document.getElementById('last-check').textContent = new Date().toLocaleTimeString();
+    }
+    
+    async checkIntegrity() {
+        const types = ['sources', 'reports', 'jobs'];
+        const results = [];
+        
+        for (const type of types) {
+            try {
+                const response = await fetch(`/api/v1/data-admin/integrity/${type}`);
+                const result = await response.json();
+                results.push({ type, ...result });
+            } catch (error) {
+                console.error(`Integrity check failed for ${type}:`, error);
+            }
+        }
+        
+        this.displayIntegrityResults(results);
+    }
+    
+    displayIntegrityResults(results) {
+        let html = '<h6>Integrity Check Results</h6>';
+        
+        for (const result of results) {
+            const hasIssues = result.issues_found && result.issues_found.length > 0;
+            const statusClass = hasIssues ? 'text-danger' : 'text-success';
+            const statusIcon = hasIssues ? 'fa-exclamation-triangle' : 'fa-check-circle';
+            
+            html += `
+                <div class="mb-3">
+                    <div class="${statusClass}">
+                        <i class="fas ${statusIcon} me-2"></i>
+                        <strong>${result.type}:</strong> ${result.current_count} records
+                    </div>
+            `;
+            
+            if (hasIssues) {
+                html += '<ul class="small">';
+                for (const issue of result.issues_found) {
+                    html += `<li>${issue.type}: ${issue.missing || issue.record || ''}</li>`;
+                }
+                html += '</ul>';
+            }
+            
+            html += '</div>';
+        }
+        
+        document.getElementById('loss-report').innerHTML = html;
+    }
+    
+    createSnapshot() {
+        const modal = new bootstrap.Modal(document.getElementById('snapshotModal'));
+        modal.show();
+    }
+    
+    async confirmSnapshot() {
+        const type = document.getElementById('snapshot-type').value;
+        const reason = document.getElementById('snapshot-reason').value;
+        
+        if (!type || !reason) {
+            alert('Please fill all fields');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/v1/data-admin/snapshot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data_type: type, reason })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                alert(`Snapshot created successfully! ID: ${result.snapshot_id}`);
+                bootstrap.Modal.getInstance(document.getElementById('snapshotModal')).hide();
+            } else {
+                alert(`Failed to create snapshot: ${result.detail}`);
+            }
+        } catch (error) {
+            alert(`Error creating snapshot: ${error.message}`);
+        }
+    }
+    
+    recoverData() {
+        const modal = new bootstrap.Modal(document.getElementById('recoveryModal'));
+        modal.show();
+    }
+    
+    async confirmRecovery() {
+        const type = document.getElementById('recovery-type').value;
+        const snapshotId = document.getElementById('recovery-snapshot').value;
+        
+        if (!type) {
+            alert('Please select a data type');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to recover ${type} data from snapshot?`)) {
+            return;
+        }
+        
+        try {
+            const body = { data_type: type };
+            if (snapshotId) body.snapshot_id = parseInt(snapshotId);
+            
+            const response = await fetch('/api/v1/data-admin/recover', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(`Successfully recovered ${result.records_recovered} records`);
+                bootstrap.Modal.getInstance(document.getElementById('recoveryModal')).hide();
+                this.loadHealthStatus();
+            } else {
+                alert(`Recovery failed: ${result.error}`);
+            }
+        } catch (error) {
+            alert(`Error recovering data: ${error.message}`);
+        }
+    }
+    
+    async persistData() {
+        if (confirm('Persist all current transient data to survive restarts?')) {
+            try {
+                const response = await fetch('/api/v1/data-admin/auto-persist', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                alert(`Persisted: ${result.persisted.join(', ')}`);
+            } catch (error) {
+                alert(`Error persisting data: ${error.message}`);
+            }
+        }
+    }
+    
+    async generateReport() {
+        try {
+            const response = await fetch('/api/v1/data-admin/report?days=7');
+            const report = await response.json();
+            
+            this.displayLossReport(report);
+        } catch (error) {
+            console.error('Failed to generate report:', error);
+        }
+    }
+    
+    displayLossReport(report) {
+        let html = `
+            <h6>Data Loss Report - ${report.report_period}</h6>
+            <div class="row mt-3">
+        `;
+        
+        // Audit summary
+        if (report.audit_summary && report.audit_summary.length > 0) {
+            html += `
+                <div class="col-md-4">
+                    <h6 class="text-muted">Operations Summary</h6>
+                    <ul class="small">
+            `;
+            for (const item of report.audit_summary) {
+                const failRate = item.failures / item.total_operations * 100;
+                html += `<li>${item.operation} on ${item.data_type}: ${item.total_operations} ops, ${item.failures} failures (${failRate.toFixed(1)}%)</li>`;
+            }
+            html += '</ul></div>';
+        }
+        
+        // Data loss incidents
+        if (report.data_loss_incidents && report.data_loss_incidents.length > 0) {
+            html += `
+                <div class="col-md-4">
+                    <h6 class="text-muted">Data Loss Incidents</h6>
+                    <ul class="small">
+            `;
+            for (const incident of report.data_loss_incidents) {
+                html += `<li>${incident.data_type}: ${incident.total_records_lost} lost, ${incident.total_records_recovered} recovered</li>`;
+            }
+            html += '</ul></div>';
+        }
+        
+        html += '</div>';
+        document.getElementById('loss-report').innerHTML = html;
+    }
+    
+    async refreshAuditLog() {
+        try {
+            const response = await fetch('/api/v1/data-admin/audit-log?limit=20');
+            const data = await response.json();
+            
+            this.displayAuditLog(data.audit_entries);
+        } catch (error) {
+            console.error('Failed to load audit log:', error);
+        }
+    }
+    
+    displayAuditLog(entries) {
+        const tbody = document.getElementById('audit-log-body');
+        
+        if (!entries || entries.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No audit entries yet</td></tr>';
+            return;
+        }
+        
+        let html = '';
+        for (const entry of entries) {
+            const statusBadge = entry.success ? 
+                '<span class="badge bg-success">Success</span>' : 
+                '<span class="badge bg-danger">Failed</span>';
+            
+            html += `
+                <tr>
+                    <td class="small">${new Date(entry.timestamp).toLocaleString()}</td>
+                    <td>${entry.operation}</td>
+                    <td>${entry.data_type}</td>
+                    <td>${entry.data_id || '-'}</td>
+                    <td>${statusBadge}</td>
+                    <td class="small text-danger">${entry.error || '-'}</td>
+                </tr>
+            `;
+        }
+        
+        tbody.innerHTML = html;
+    }
+    
+    async createBackup() {
+        if (confirm('Create a full system backup? This may take a moment.')) {
+            try {
+                const response = await fetch('/api/v1/data-admin/backup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ backup_type: 'full' })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(`Backup created successfully!\nPath: ${result.backup_path}\nSnapshots: ${result.snapshots_created.join(', ')}`);
+                } else {
+                    alert(`Backup failed: ${result.detail}`);
+                }
+            } catch (error) {
+                alert(`Error creating backup: ${error.message}`);
+            }
+        }
+    }
+}
+
+// Initialize on page load
+let dataAdmin;
+document.addEventListener('DOMContentLoaded', function() {
+    dataAdmin = new DataAdminSystem();
+});
+</script>
+{% endblock %}

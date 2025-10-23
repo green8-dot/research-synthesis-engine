@@ -1,0 +1,509 @@
+{% extends "base.html" %}
+
+{% block title %}System Diagnostics - Research Synthesis Engine{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-0 text-gradient">
+                    <i class="fas fa-stethoscope me-2"></i>System Diagnostics
+                </h1>
+                <p class="text-muted mb-0">Comprehensive troubleshooting and system health monitoring</p>
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="runComprehensiveDiagnostics()">
+                    <i class="fas fa-play me-1"></i>Run Full Diagnostics
+                </button>
+                <button class="btn btn-warning ms-2" onclick="applyQuickFixes()">
+                    <i class="fas fa-magic me-1"></i>Quick Fix
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Health Summary Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-heart-pulse me-2"></i>System Health Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="health-summary">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading health summary...</span>
+                        </div>
+                        <p class="mt-2">Loading system health...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100 border-primary">
+            <div class="card-body text-center">
+                <i class="fas fa-database fa-2x text-primary mb-3"></i>
+                <h6>Database Check</h6>
+                <button class="btn btn-outline-primary btn-sm" onclick="checkDatabases()">
+                    Test Connections
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100 border-success">
+            <div class="card-body text-center">
+                <i class="fas fa-plug fa-2x text-success mb-3"></i>
+                <h6>API Endpoints</h6>
+                <button class="btn btn-outline-success btn-sm" onclick="checkAPIs()">
+                    Test APIs
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100 border-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-code fa-2x text-warning mb-3"></i>
+                <h6>Frontend Files</h6>
+                <button class="btn btn-outline-warning btn-sm" onclick="checkFrontend()">
+                    Check Files
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100 border-danger">
+            <div class="card-body text-center">
+                <i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i>
+                <h6>Common Issues</h6>
+                <button class="btn btn-outline-danger btn-sm" onclick="checkCommonIssues()">
+                    Diagnose
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Diagnostics Results -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clipboard-list me-2"></i>Diagnostic Results
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="diagnostic-results">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-info-circle fa-2x mb-2 opacity-50"></i>
+                        <p>Click any diagnostic button above to run system checks</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Common Issues Reference -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-question-circle me-2"></i>Common Issues & Solutions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="commonIssuesAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#issue1">
+                                Generate Report Button Not Responding
+                            </button>
+                        </h2>
+                        <div id="issue1" class="accordion-collapse collapse" data-bs-parent="#commonIssuesAccordion">
+                            <div class="accordion-body">
+                                <strong>Symptoms:</strong> Button appears frozen, no console logs, no response when clicked
+                                <hr>
+                                <strong>Solutions:</strong>
+                                <ul>
+                                    <li>Hard refresh the page (Ctrl+F5)</li>
+                                    <li>Check browser console (F12) for JavaScript errors</li>
+                                    <li>Verify API endpoint is responding</li>
+                                    <li>Clear browser cache and cookies</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#issue2">
+                                Reports Not Persisting
+                            </button>
+                        </h2>
+                        <div id="issue2" class="accordion-collapse collapse" data-bs-parent="#commonIssuesAccordion">
+                            <div class="accordion-body">
+                                <strong>Symptoms:</strong> Reports generate but disappear on page refresh
+                                <hr>
+                                <strong>Solutions:</strong>
+                                <ul>
+                                    <li>Check that reports directory exists and is writable</li>
+                                    <li>Verify database connection is stable</li>
+                                    <li>Check server logs for storage errors</li>
+                                    <li>Ensure API is properly saving to file system</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#issue3">
+                                Database Connection Issues
+                            </button>
+                        </h2>
+                        <div id="issue3" class="accordion-collapse collapse" data-bs-parent="#commonIssuesAccordion">
+                            <div class="accordion-body">
+                                <strong>Symptoms:</strong> 500 errors, "Database connection failed", no data loading
+                                <hr>
+                                <strong>Solutions:</strong>
+                                <ul>
+                                    <li>Check database file permissions</li>
+                                    <li>Verify SQLite file exists in correct location</li>
+                                    <li>Restart the server</li>
+                                    <li>Check database connection string in settings</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let diagnosticsRunning = false;
+
+// Load health summary on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadHealthSummary();
+});
+
+async function loadHealthSummary() {
+    try {
+        const response = await fetch('/api/v1/diagnostics/health-summary');
+        const data = await response.json();
+        displayHealthSummary(data);
+    } catch (error) {
+        console.error('Failed to load health summary:', error);
+        document.getElementById('health-summary').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Failed to load health summary: ${error.message}
+            </div>
+        `;
+    }
+}
+
+function displayHealthSummary(data) {
+    const healthColor = data.overall_health === 'excellent' ? 'success' : 
+                       data.overall_health === 'good' ? 'warning' : 'danger';
+    
+    const healthIcon = data.overall_health === 'excellent' ? 'check-circle' : 
+                      data.overall_health === 'good' ? 'exclamation-triangle' : 'times-circle';
+    
+    const html = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="fas fa-${healthIcon} fa-3x text-${healthColor} me-3"></i>
+                    <div>
+                        <h3 class="mb-0 text-${healthColor}">${data.overall_health.charAt(0).toUpperCase() + data.overall_health.slice(1)}</h3>
+                        <p class="mb-0 text-muted">${data.health_percentage}% system health</p>
+                    </div>
+                </div>
+                <div class="progress mb-3" style="height: 20px;">
+                    <div class="progress-bar bg-${healthColor}" style="width: ${data.health_percentage}%">
+                        ${data.checks_passed}/${data.total_checks} checks passed
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h6>Component Status:</h6>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="mb-2">
+                            <i class="fas fa-database me-1 text-${data.summary.database === 'connected' ? 'success' : 'danger'}"></i>
+                            Database: ${data.summary.database}
+                        </div>
+                        <div class="mb-2">
+                            <i class="fas fa-plug me-1 text-${data.summary.api === 'likely_ok' ? 'success' : 'danger'}"></i>
+                            API: ${data.summary.api}
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-2">
+                            <i class="fas fa-code me-1 text-${data.summary.frontend === 'ok' ? 'success' : 'danger'}"></i>
+                            Frontend: ${data.summary.frontend}
+                        </div>
+                        <div class="mb-2">
+                            <i class="fas fa-folder me-1 text-${data.summary.storage === 'ok' ? 'success' : 'warning'}"></i>
+                            Storage: ${data.summary.storage}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-3">
+            <small class="text-muted">Last checked: ${new Date(data.timestamp).toLocaleString()}</small>
+        </div>
+    `;
+    
+    document.getElementById('health-summary').innerHTML = html;
+}
+
+async function runComprehensiveDiagnostics() {
+    if (diagnosticsRunning) return;
+    
+    diagnosticsRunning = true;
+    const resultsDiv = document.getElementById('diagnostic-results');
+    
+    resultsDiv.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Running comprehensive diagnostics...</span>
+            </div>
+            <p class="mt-2">Running comprehensive system diagnostics...</p>
+        </div>
+    `;
+    
+    try {
+        const response = await fetch('/api/v1/diagnostics/comprehensive');
+        const data = await response.json();
+        displayComprehensiveResults(data);
+    } catch (error) {
+        resultsDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Diagnostics failed: ${error.message}
+            </div>
+        `;
+    } finally {
+        diagnosticsRunning = false;
+    }
+}
+
+function displayComprehensiveResults(data) {
+    const resultsDiv = document.getElementById('diagnostic-results');
+    
+    let html = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-database me-2"></i>Database Status</h6>
+                ${formatDatabaseResults(data.database_status)}
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-plug me-2"></i>API Status</h6>
+                ${formatAPIResults(data.api_status)}
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <h6><i class="fas fa-code me-2"></i>Frontend Status</h6>
+                ${formatFrontendResults(data.frontend_status)}
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-lightbulb me-2"></i>Recommendations</h6>
+                <ul class="list-unstyled">
+                    ${data.recommendations.map(rec => `<li><i class="fas fa-arrow-right me-1 text-muted"></i>${rec}</li>`).join('')}
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    resultsDiv.innerHTML = html;
+}
+
+function formatDatabaseResults(dbStatus) {
+    let html = '<div class="list-group list-group-flush">';
+    
+    for (const [db, status] of Object.entries(dbStatus)) {
+        const statusColor = status.status === 'connected' ? 'success' : 
+                           status.status === 'not_available' ? 'warning' : 'danger';
+        const statusIcon = status.status === 'connected' ? 'check-circle' : 
+                          status.status === 'not_available' ? 'exclamation-triangle' : 'times-circle';
+        
+        html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${db.toUpperCase()}</strong>
+                    <small class="d-block text-muted">${status.type}</small>
+                </div>
+                <span class="badge bg-${statusColor}">
+                    <i class="fas fa-${statusIcon} me-1"></i>${status.status}
+                </span>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function formatAPIResults(apiStatus) {
+    let html = '<div class="list-group list-group-flush">';
+    
+    for (const [endpoint, status] of Object.entries(apiStatus)) {
+        const statusColor = status.status === 'ok' ? 'success' : 'danger';
+        const statusIcon = status.status === 'ok' ? 'check-circle' : 'times-circle';
+        
+        html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <code>${endpoint}</code>
+                    ${status.http_status ? `<small class="d-block text-muted">HTTP ${status.http_status}</small>` : ''}
+                </div>
+                <span class="badge bg-${statusColor}">
+                    <i class="fas fa-${statusIcon} me-1"></i>${status.status}
+                </span>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function formatFrontendResults(frontendStatus) {
+    let html = '<div class="list-group list-group-flush">';
+    
+    for (const [file, status] of Object.entries(frontendStatus)) {
+        const statusColor = status.exists ? 'success' : 'danger';
+        const statusIcon = status.exists ? 'check-circle' : 'times-circle';
+        
+        html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${file}</strong>
+                    ${status.size ? `<small class="d-block text-muted">${(status.size / 1024).toFixed(1)}KB</small>` : ''}
+                </div>
+                <span class="badge bg-${statusColor}">
+                    <i class="fas fa-${statusIcon} me-1"></i>${status.exists ? 'exists' : 'missing'}
+                </span>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+async function checkDatabases() {
+    await runSpecificCheck('database', 'Database connections');
+}
+
+async function checkAPIs() {
+    await runSpecificCheck('api', 'API endpoints');
+}
+
+async function checkFrontend() {
+    await runSpecificCheck('frontend', 'Frontend files');
+}
+
+async function checkCommonIssues() {
+    await runSpecificCheck('common-issues', 'Common issues');
+}
+
+async function runSpecificCheck(endpoint, description) {
+    const resultsDiv = document.getElementById('diagnostic-results');
+    
+    resultsDiv.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Checking ${description}...</span>
+            </div>
+            <p class="mt-2">Checking ${description}...</p>
+        </div>
+    `;
+    
+    try {
+        const response = await fetch(`/api/v1/diagnostics/${endpoint}`);
+        const data = await response.json();
+        
+        resultsDiv.innerHTML = `
+            <h6><i class="fas fa-info-circle me-2"></i>${description} Results</h6>
+            <pre class="bg-light p-3 rounded">${JSON.stringify(data, null, 2)}</pre>
+        `;
+    } catch (error) {
+        resultsDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Failed to check ${description}: ${error.message}
+            </div>
+        `;
+    }
+}
+
+async function applyQuickFixes() {
+    const resultsDiv = document.getElementById('diagnostic-results');
+    
+    resultsDiv.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Applying quick fixes...</span>
+            </div>
+            <p class="mt-2">Applying automated quick fixes...</p>
+        </div>
+    `;
+    
+    try {
+        const response = await fetch('/api/v1/diagnostics/quick-fix', {
+            method: 'POST'
+        });
+        const data = await response.json();
+        
+        let html = `
+            <div class="alert alert-success">
+                <h6><i class="fas fa-check-circle me-2"></i>Quick fixes applied successfully!</h6>
+                <ul class="mb-0">
+                    ${data.fixes_applied.map(fix => `<li>${fix}</li>`).join('')}
+                </ul>
+            </div>
+            <h6>Recommendations:</h6>
+            <ul>
+                ${data.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+            </ul>
+        `;
+        
+        resultsDiv.innerHTML = html;
+        
+        // Reload health summary
+        setTimeout(loadHealthSummary, 1000);
+        
+    } catch (error) {
+        resultsDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Quick fixes failed: ${error.message}
+            </div>
+        `;
+    }
+}
+</script>
+{% endblock %}

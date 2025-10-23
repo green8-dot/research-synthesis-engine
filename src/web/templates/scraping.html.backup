@@ -1,0 +1,1215 @@
+{% extends "base.html" %}
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">{% block title %}Web Scraping - Research Synthesis Engine{% endblock %}
+
+{% block extra_css %}
+<style>
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+.collapse-icon.collapsed {
+    transform: rotate(-90deg);
+}
+
+.btn-link:focus,
+.btn-link:hover {
+    text-decoration: none !important;
+}
+
+.card-header .btn-link {
+    color: inherit;
+    font-weight: 600;
+}
+
+.card-header .btn-link:hover {
+    color: var(--bs-primary);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-0 text-gradient">
+                    <i class="fas fa-spider me-2"></i>Web Scraping
+                </h1>
+                <p class="text-muted mb-0">Manage data collection from space industry sources</p>
+            </div>
+            <div>
+                <button class="btn btn-success" onclick="startAllScraping()">
+                    <i class="fas fa-play me-1"></i>Start All Sources
+                </button>
+                <button class="btn btn-primary ms-2" data-bs-toggle="modal" data-bs-target="#addSourceModal" onclick="openAddSourceModal()">
+                    <i class="fas fa-plus me-1"></i>Add Source
+                </button>
+                <button class="btn btn-outline-primary ms-2" onclick="refreshSources()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scraping Overview -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number">{{ sources|length }}</div>
+                    <div class="stat-label">Active Sources</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon">
+                    <i class="fas fa-newspaper"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="total-articles">0</div>
+                    <div class="stat-label">Articles Collected</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number">24h</div>
+                    <div class="stat-label">Last Scraping</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number">100%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Sources Management -->
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <button class="btn text-decoration-none p-0 d-flex align-items-center w-100 justify-content-between text-dark" 
+                        type="button" data-bs-toggle="collapse" data-bs-target="#dataSourcesCollapse">
+                    <span>
+                        <i class="fas fa-rss me-2"></i>Data Sources
+                        <small class="text-secondary ms-2">(<span id="sources-count">{{ sources|length }}</span> sources)</small>
+                    </span>
+                    <i class="fas fa-chevron-down collapse-icon"></i>
+                </button>
+            </div>
+            <div class="collapse show" id="dataSourcesCollapse">
+                <div class="card-body">
+                <div class="table-responsive"><table class="table">
+                        <thead>
+                            <tr>
+                                <th>Source</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Last Scraped</th>
+                                <th>Articles</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for source in sources %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="status-dot {{ source.status }} me-2"></div>
+                                        <div>
+                                            <div class="fw-medium">{{ source.name }}</div>
+                                            <small class="text-secondary">{{ source.url }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ source.type|title }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-status-{{ source.status }}">
+                                        {{ source.status|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if source.last_scraped %}
+                                        {{ source.last_scraped }}
+                                    {% else %}
+                                        <span class="text-secondary">Never</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="fw-medium">{{ source.articles_count }}</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-primary" 
+                                                onclick="startScraping('{{ source.name }}')" 
+                                                title="Start Scraping" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" 
+                                                onclick="editSource('{{ source.name }}')" 
+                                                title="Edit Source" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info" 
+                                                onclick="viewDetails('{{ source.name }}')" 
+                                                title="View Details" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                onclick="removeSource('{{ source.name }}')" 
+                                                title="Remove Source" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button" aria-label="Action button">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scraping Configuration -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>Scraping Settings
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="scraping-config-form" data-submit-api="/api/v1/scraping/configure" data-method="POST">
+                    <div class="mb-3">
+                        <label for="scraping-interval" class="form-label">Scraping Interval</label>
+                        <select class="form-select" id="scraping-interval" name="interval">
+                            <option value="3600" selected>1 Hour</option>
+                            <option value="7200">2 Hours</option>
+                            <option value="14400">4 Hours</option>
+                            <option value="28800">8 Hours</option>
+                            <option value="86400">24 Hours</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="concurrent-requests" class="form-label">Concurrent Requests</label>
+                        <input type="number" class="form-control" id="concurrent-requests" 
+                               name="concurrent_requests" value="4" min="1" max="16">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="download-delay" class="form-label">Download Delay (seconds)</label>
+                        <input type="number" class="form-control" id="download-delay" 
+                               name="download_delay" value="1" min="0.5" max="10" step="0.5">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="respect-robots" 
+                                   name="respect_robots" checked>
+                            <label class="form-check-label" for="respect-robots">
+                                Respect robots.txt
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="manufacturing-only" 
+                                   name="manufacturing_focus">
+                            <label class="form-check-label" for="manufacturing-only">
+                                Focus on manufacturing content
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save me-1"></i>Save Configuration
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-info btn-sm" onclick="viewLogs()">
+                        <i class="fas fa-file-alt me-1"></i>View Logs
+                    </button>
+                    
+                    <button class="btn btn-outline-warning btn-sm" onclick="clearCache()">
+                        <i class="fas fa-trash me-1"></i>Clear Cache
+                    </button>
+                    
+                    <button class="btn btn-outline-primary btn-sm" onclick="exportData()">
+                        <i class="fas fa-download me-1"></i>Export Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Jobs Activity -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-tasks me-2"></i>Current Scraping Activity
+                </h5>
+                <div>
+                    <button class="btn btn-outline-danger btn-sm" onclick="stopAllScraping()" id="stop-all-btn" style="display: none;">
+                        <i class="fas fa-stop me-1"></i>Stop All
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm ms-2" onclick="clearCompleted()" id="clear-btn" style="display: none;">
+                        <i class="fas fa-broom me-1"></i>Clear Completed
+                    </button>
+                    <button class="btn btn-outline-info btn-sm ms-2" onclick="showArchived()">
+                        <i class="fas fa-archive me-1"></i>Archived
+                    </button>
+                    <button class="btn btn-primary btn-sm ms-2" onclick="refreshJobs()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="scraping-jobs-container">
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-clock fa-2x mb-3"></i>
+                        <p>No active scraping jobs</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Space Manufacturing Sources -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-industry me-2"></i>Space Manufacturing Sources
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3 text-center h-100">
+                            <i class="fas fa-newspaper text-primary mb-2" style="font-size: 2rem;"></i>
+                            <h6 class="fw-semibold">News Sources</h6>
+                            <small class="text-muted">SpaceNews, Space.com, SpaceflightNow</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3 text-center h-100">
+                            <i class="fas fa-building text-success mb-2" style="font-size: 2rem;"></i>
+                            <h6 class="fw-semibold">Company Sources</h6>
+                            <small class="text-muted">SpaceX, Blue Origin, Relativity Space</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3 text-center h-100">
+                            <i class="fas fa-university text-warning mb-2" style="font-size: 2rem;"></i>
+                            <h6 class="fw-semibold">Academic Sources</h6>
+                            <small class="text-muted">arXiv, IEEE, Research Papers</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3 text-center h-100">
+                            <i class="fas fa-landmark text-danger mb-2" style="font-size: 2rem;"></i>
+                            <h6 class="fw-semibold">Government Sources</h6>
+                            <small class="text-muted">NASA, ESA, Space Force</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Source Modal -->
+<div class="modal fade" id="addSourceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Add New Source
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-source-form" data-submit-api="/api/v1/scraping/sources/add" data-method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="source-name" class="form-label">Source Name *</label>
+                                <input type="text" class="form-control" id="source-name" name="name" 
+                                       placeholder="e.g., SpaceX News" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="source-type" class="form-label">Source Type *</label>
+                                <select class="form-select" id="source-type" name="type" required>
+                                    <option value="">Select type...</option>
+                                    <option value="news">News</option>
+                                    <option value="company">Company</option>
+                                    <option value="academic">Academic</option>
+                                    <option value="government">Government</option>
+                                    <option value="blog">Blog</option>
+                                    <option value="social">Social Media</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="source-url" class="form-label">URL *</label>
+                        <input type="url" class="form-control" id="source-url" name="url" 
+                               placeholder="https://example.com" required>
+                        <div class="form-text">Enter the main URL or RSS feed URL to scrape</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="source-sector" class="form-label">Space Sector</label>
+                                <select class="form-select" id="source-sector" name="space_sector">
+                                    <option value="general">General</option>
+                                    <option value="launch">Launch Services</option>
+                                    <option value="satellite">Satellites</option>
+                                    <option value="exploration">Space Exploration</option>
+                                    <option value="manufacturing">Space Manufacturing</option>
+                                    <option value="infrastructure">Infrastructure</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="source-priority" class="form-label">Priority</label>
+                                <select class="form-select" id="source-priority" name="priority">
+                                    <option value="normal">Normal</option>
+                                    <option value="high">High</option>
+                                    <option value="low">Low</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="source-description" class="form-label">Description</label>
+                        <textarea class="form-control" id="source-description" name="description" rows="3" 
+                                  placeholder="Brief description of this source..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="source-active" name="active" checked>
+                                <label class="form-check-label" for="source-active">
+                                    Active (include in scraping jobs)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="source-rss" name="is_rss">
+                                <label class="form-check-label" for="source-rss">
+                                    RSS/Atom feed
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="add-source-form" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Add Source
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Source Modal -->
+<div class="modal fade" id="editSourceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Edit Source
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-source-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-source-name" class="form-label">Source Name *</label>
+                                <input type="text" class="form-control" id="edit-source-name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-source-type" class="form-label">Source Type *</label>
+                                <select class="form-select" id="edit-source-type" name="type" required>
+                                    <option value="news">News</option>
+                                    <option value="company">Company</option>
+                                    <option value="academic">Academic</option>
+                                    <option value="government">Government</option>
+                                    <option value="blog">Blog</option>
+                                    <option value="social">Social Media</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit-source-url" class="form-label">URL *</label>
+                        <input type="url" class="form-control" id="edit-source-url" name="url" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-source-sector" class="form-label">Space Sector</label>
+                                <select class="form-select" id="edit-source-sector" name="space_sector">
+                                    <option value="general">General</option>
+                                    <option value="launch">Launch Services</option>
+                                    <option value="satellite">Satellites</option>
+                                    <option value="exploration">Space Exploration</option>
+                                    <option value="manufacturing">Space Manufacturing</option>
+                                    <option value="infrastructure">Infrastructure</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-source-priority" class="form-label">Priority</label>
+                                <select class="form-select" id="edit-source-priority" name="priority">
+                                    <option value="normal">Normal</option>
+                                    <option value="high">High</option>
+                                    <option value="low">Low</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit-source-description" class="form-label">Description</label>
+                        <textarea class="form-control" id="edit-source-description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="edit-source-active" name="active">
+                                <label class="form-check-label" for="edit-source-active">
+                                    Active (include in scraping jobs)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="edit-source-rss" name="is_rss">
+                                <label class="form-check-label" for="edit-source-rss">
+                                    RSS/Atom feed
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="edit-source-form" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+console.log('=== SCRAPING PAGE JAVASCRIPT LOADING ===');
+console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
+console.log('jQuery available:', typeof $ !== 'undefined');
+console.log('Document ready state:', document.readyState);
+
+// Test function to verify click handling works
+window.testFunction = function() {
+    alert('Test function works!');
+    console.log('Test function executed successfully');
+};
+function startScraping(sourceName) {
+    RSApp.showLoading(true);
+    
+    axios.post('/api/v1/scraping/start', {
+        sources: sourceName ? [sourceName] : undefined
+    })
+    .then(response => {
+        RSApp.showMessage('Scraping started successfully!', 'success');
+        // Show job activity immediately
+        displayNewJob(response.data);
+        setTimeout(() => {
+            refreshSources();
+            refreshJobs();
+        }, 2000);
+    })
+    .catch(error => {
+        RSApp.showMessage('Failed to start scraping', 'danger');
+    })
+    .finally(() => {
+        RSApp.showLoading(false);
+    });
+}
+
+function startAllScraping() {
+    startScraping();
+}
+
+function openAddSourceModal() {
+    console.log('openAddSourceModal function called');
+    try {
+        const modal = document.getElementById('addSourceModal');
+        if (modal) {
+            const bootstrapModal = new bootstrap.Modal(modal, {
+                backdrop: true,
+                keyboard: true
+            });
+            bootstrapModal.show();
+            console.log('Add Source modal opened successfully');
+        } else {
+            console.error('Add Source modal element not found');
+        }
+    } catch (error) {
+        console.error('Error opening Add Source modal:', error);
+    }
+}
+
+function refreshSources() {
+    location.reload();
+}
+
+function configureSource(sourceName) {
+    RSApp.showMessage('Source configuration coming soon!', 'info');
+}
+
+function viewDetails(sourceName) {
+    RSApp.showMessage('Source details coming soon!', 'info');
+}
+
+
+function viewLogs() {
+    RSApp.showMessage('Scraping logs coming soon!', 'info');
+}
+
+function clearCache() {
+    if (confirm('Are you sure you want to clear the scraping cache?')) {
+        RSApp.showMessage('Cache cleared successfully', 'success');
+    }
+}
+
+function exportData() {
+    RSApp.showMessage('Data export coming soon!', 'info');
+}
+
+function displayNewJob(jobData) {
+    const container = document.getElementById('scraping-jobs-container');
+    container.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center border rounded p-3 mb-3">
+            <div class="d-flex align-items-center">
+                <div class="spinner-border spinner-border-sm text-primary me-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div>
+                    <h6 class="mb-1">Scraping Job ${jobData.job_id}</h6>
+                    <small class="text-muted">Sources: ${jobData.sources.join(', ')}</small>
+                </div>
+            </div>
+            <div class="text-end">
+                <div class="badge bg-primary">Running</div>
+                <div class="small text-muted mt-1">Just started</div>
+            </div>
+        </div>
+    `;
+}
+
+function refreshJobs() {
+    axios.get('/api/v1/scraping/jobs')
+        .then(response => {
+            displayJobs(response.data);
+        })
+        .catch(error => {
+            console.error('Failed to refresh jobs:', error);
+        });
+}
+
+function displayJobs(jobsData) {
+    const container = document.getElementById('scraping-jobs-container');
+    const stopAllBtn = document.getElementById('stop-all-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    
+    // Show/hide buttons based on job states
+    const hasRunningJobs = jobsData.active_jobs > 0;
+    const hasCompletedOrStopped = (jobsData.completed_jobs + jobsData.stopped_jobs) > 0;
+    
+    stopAllBtn.style.display = hasRunningJobs ? 'inline-block' : 'none';
+    clearBtn.style.display = hasCompletedOrStopped ? 'inline-block' : 'none';
+    
+    if (jobsData.jobs.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4 text-muted">
+                <i class="fas fa-clock fa-2x mb-3"></i>
+                <p>No scraping jobs</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = jobsData.jobs.map(job => {
+        const statusColor = job.status === 'running' ? 'primary' : 
+                           job.status === 'completed' ? 'success' : 
+                           job.status === 'stopped' ? 'warning' : 
+                           job.status === 'failed' ? 'danger' : 'secondary';
+        
+        const spinnerClass = job.status === 'running' ? 'spinner-border spinner-border-sm' : 
+                           job.status === 'completed' ? 'fas fa-check-circle' :
+                           job.status === 'stopped' ? 'fas fa-pause-circle' : 
+                           job.status === 'failed' ? 'fas fa-exclamation-circle' : 'fas fa-circle';
+        
+        return `
+            <div class="d-flex justify-content-between align-items-center border rounded p-3 mb-3">
+                <div class="d-flex align-items-center">
+                    <div class="${spinnerClass} text-${statusColor} me-3" role="status">
+                        ${job.status === 'running' ? '<span class="visually-hidden">Loading...</span>' : ''}
+                    </div>
+                    <div>
+                        <h6 class="mb-1">Job ${job.id.split('_').pop()}</h6>
+                        <small class="text-muted">Sources: ${job.sources.slice(0, 3).join(', ')}${job.sources.length > 3 ? ` +${job.sources.length - 3} more` : ''}</small>
+                        <div class="progress mt-2" style="width: 250px; height: 6px;">
+                            <div class="progress-bar bg-${statusColor}" style="width: ${job.progress || 0}%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="badge bg-${statusColor}">${job.status}</div>
+                        ${job.status === 'running' ? `
+                            <button class="btn btn-outline-danger btn-sm" onclick="stopJob('${job.id}')" title="Stop Job">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                        ` : job.status === 'stopped' ? `
+                            <button class="btn btn-outline-success btn-sm" onclick="resumeJob('${job.id}')" title="Resume Job">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="commitJob('${job.id}')" title="Mark as Complete">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        ` : job.status === 'failed' ? `
+                            <button class="btn btn-outline-warning btn-sm" onclick="retryJob('${job.id}')" title="Retry Job">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="removeJob('${job.id}')" title="Remove Job">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : job.status === 'completed' ? `
+                            <button class="btn btn-outline-secondary btn-sm" onclick="removeJob('${job.id}')" title="Remove Job">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="small text-muted">${job.articles_found || 0} articles found</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Handle configuration form submission
+function handleConfigSubmit() {
+    const form = document.getElementById('scraping-config-form');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    // Convert form values to proper types
+    const configData = {
+        interval: parseInt(data.interval),
+        concurrent_requests: parseInt(data.concurrent_requests),
+        download_delay: parseFloat(data.download_delay),
+        respect_robots: !!data.respect_robots
+    };
+    
+    RSApp.showLoading(true);
+    
+    axios.post('/api/v1/scraping/configure', configData)
+        .then(response => {
+            RSApp.showMessage('Configuration saved successfully!', 'success');
+        })
+        .catch(error => {
+            RSApp.showMessage('Failed to save configuration', 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+function stopJob(jobId) {
+    if (!confirm('Are you sure you want to stop this scraping job? Progress will be retained.')) {
+        return;
+    }
+    
+    RSApp.showLoading(true);
+    
+    axios.post(`/api/v1/scraping/stop/${jobId}`)
+        .then(response => {
+            RSApp.showMessage(`Job stopped successfully! Progress retained: ${response.data.progress_retained}%`, 'warning');
+            refreshJobs();
+        })
+        .catch(error => {
+            RSApp.showMessage('Failed to stop job', 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+function resumeJob(jobId) {
+    RSApp.showLoading(true);
+    
+    axios.post(`/api/v1/scraping/resume/${jobId}`)
+        .then(response => {
+            RSApp.showMessage(`Job resumed from ${response.data.progress}% progress!`, 'success');
+            refreshJobs();
+        })
+        .catch(error => {
+            RSApp.showMessage('Failed to resume job', 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+function commitJob(jobId) {
+    if (!confirm('Mark this job as completed? This will finalize the job with its current progress.')) {
+        return;
+    }
+    
+    RSApp.showLoading(true);
+    
+    axios.post(`/api/v1/scraping/commit/${jobId}`)
+        .then(response => {
+            RSApp.showMessage(`Job completed with ${response.data.total_articles} articles!`, 'success');
+            refreshJobs();
+        })
+        .catch(error => {
+            RSApp.showMessage('Failed to commit job', 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+function clearCompleted() {
+    if (!confirm('Clear all completed and stopped jobs? They will be moved to archive.')) {
+        return;
+    }
+    
+    RSApp.showLoading(true);
+    
+    axios.post('/api/v1/scraping/clear-completed')
+        .then(response => {
+            RSApp.showMessage(`${response.data.archived_count} jobs archived!`, 'info');
+            refreshJobs();
+        })
+        .catch(error => {
+            RSApp.showMessage('Failed to clear jobs', 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+function retryJob(jobId) {
+    if (!confirm('Retry this failed job? This will restart the job from the beginning.')) {
+        return;
+    }
+    
+    RSApp.showLoading(true);
+    
+    axios.post(`/api/v1/scraping/jobs/${jobId}/retry`)
+        .then(response => {
+            RSApp.showMessage('Job retry initiated successfully!', 'success');
+            refreshJobs();
+        })
+        .catch(error => {
+            RSApp.showMessage('Failed to retry job: ' + (error.response?.data?.detail || error.message), 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+function removeJob(jobId) {
+    if (!confirm('Remove this job from the queue? This action cannot be undone.')) {
+        return;
+    }
+    
+    RSApp.showLoading(true);
+    
+    axios.delete(`/api/v1/scraping/jobs/${jobId}`)
+        .then(response => {
+            RSApp.showMessage('Job removed successfully!', 'info');
+            refreshJobs();
+        })
+        .catch(error => {
+            RSApp.showMessage('Failed to remove job: ' + (error.response?.data?.detail || error.message), 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+function showArchived() {
+    RSApp.showLoading(true);
+    
+    axios.get('/api/v1/scraping/archived')
+        .then(response => {
+            displayArchivedJobs(response.data);
+        })
+        .catch(error => {
+            RSApp.showMessage('Failed to load archived jobs', 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+function displayArchivedJobs(data) {
+    const container = document.getElementById('scraping-jobs-container');
+    
+    if (data.archived_jobs.length === 0) {
+        RSApp.showMessage('No archived jobs yet', 'info');
+        return;
+    }
+    
+    // Temporarily show archived jobs
+    container.innerHTML = `
+        <div class="mb-3">
+            <h6>Archived Jobs (${data.total_archived})</h6>
+            <button class="btn btn-sm btn-outline-secondary mb-2" onclick="refreshJobs()">
+                <i class="fas fa-arrow-left me-1"></i>Back to Active Jobs
+            </button>
+        </div>
+        ${data.archived_jobs.map(job => `
+            <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2" style="background-color: #f8f9fa;">
+                <div>
+                    <small class="text-muted">Job ${job.id.split('_').pop()}</small>
+                    <div class="small">${job.sources.length} sources • ${job.articles_found || 0} articles • ${job.progress}%</div>
+                </div>
+                <div class="badge bg-secondary">${job.status}</div>
+            </div>
+        `).join('')}
+    `;
+}
+
+function stopAllScraping() {
+    if (!confirm('Are you sure you want to stop all running scraping jobs? All progress will be retained.')) {
+        return;
+    }
+    
+    RSApp.showLoading(true);
+    
+    axios.post('/api/v1/scraping/stop-all')
+        .then(response => {
+            RSApp.showMessage(`${response.data.stopped_jobs.length} jobs stopped successfully!`, 'warning');
+            refreshJobs();
+        })
+        .catch(error => {
+            RSApp.showMessage('Failed to stop jobs', 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+// Load current configuration
+function loadCurrentConfig() {
+    axios.get('/api/v1/scraping/configure')
+        .then(response => {
+            const config = response.data;
+            document.getElementById('scraping-interval').value = config.interval;
+            document.getElementById('concurrent-requests').value = config.concurrent_requests;
+            document.getElementById('download-delay').value = config.download_delay;
+            document.getElementById('respect-robots').checked = config.respect_robots;
+        })
+        .catch(error => {
+            console.error('Failed to load configuration:', error);
+        });
+}
+
+// Source management functions
+let currentSourceName = null;
+
+function editSource(sourceName) {
+    currentSourceName = sourceName;
+    RSApp.showLoading(true);
+    
+    // Fetch source details from API
+    axios.get(`/api/v1/scraping/sources/${encodeURIComponent(sourceName)}`)
+        .then(response => {
+            const source = response.data;
+            
+            document.getElementById('edit-source-name').value = source.name;
+            document.getElementById('edit-source-type').value = source.type;
+            document.getElementById('edit-source-url').value = source.url;
+            document.getElementById('edit-source-sector').value = source.space_sector;
+            document.getElementById('edit-source-priority').value = source.priority;
+            document.getElementById('edit-source-description').value = source.description || '';
+            document.getElementById('edit-source-active').checked = source.active;
+            document.getElementById('edit-source-rss').checked = source.is_rss;
+            
+            const modal = new bootstrap.Modal(document.getElementById('editSourceModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Failed to load source details:', error);
+            RSApp.showMessage('Failed to load source details', 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+function removeSource(sourceName) {
+    if (confirm(`Are you sure you want to remove the source "${sourceName}"? This action cannot be undone.`)) {
+        RSApp.showLoading(true);
+        
+        axios.delete(`/api/v1/scraping/sources/${encodeURIComponent(sourceName)}`)
+            .then(response => {
+                RSApp.showMessage(response.data.message, 'success');
+                refreshSources();
+            })
+            .catch(error => {
+                console.error('Failed to remove source:', error);
+                const message = error.response?.data?.message || 'Failed to remove source';
+                RSApp.showMessage(message, 'danger');
+            })
+            .finally(() => {
+                RSApp.showLoading(false);
+            });
+    }
+}
+
+function validateSourceURL(url) {
+    try {
+        new URL(url);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function addSource(formData) {
+    RSApp.showLoading(true);
+    
+    axios.post('/api/v1/scraping/sources/add', formData)
+        .then(response => {
+            RSApp.showMessage(response.data.message, 'success');
+            
+            // Hide modal and reset form
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addSourceModal'));
+            modal.hide();
+            document.getElementById('add-source-form').reset();
+            
+            // Refresh sources list
+            refreshSources();
+        })
+        .catch(error => {
+            console.error('Failed to add source:', error);
+            const message = error.response?.data?.message || 'Failed to add source';
+            RSApp.showMessage(message, 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+function updateSource(formData) {
+    RSApp.showLoading(true);
+    
+    axios.put(`/api/v1/scraping/sources/${encodeURIComponent(currentSourceName)}`, formData)
+        .then(response => {
+            RSApp.showMessage(response.data.message, 'success');
+            
+            // Hide modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editSourceModal'));
+            modal.hide();
+            
+            // Refresh sources list
+            refreshSources();
+        })
+        .catch(error => {
+            console.error('Failed to update source:', error);
+            const message = error.response?.data?.message || 'Failed to update source';
+            RSApp.showMessage(message, 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+// Load jobs when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    refreshJobs();
+    loadCurrentConfig();
+    
+    // Auto-refresh jobs every 10 seconds
+    setInterval(refreshJobs, 10000);
+    
+    // Handle config form submission
+    const configForm = document.getElementById('scraping-config-form');
+    if (configForm) {
+        configForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleConfigSubmit();
+        });
+    }
+    
+    // Handle add source form submission success
+    const addSourceForm = document.getElementById('add-source-form');
+    if (addSourceForm) {
+        addSourceForm.addEventListener('formSubmitSuccess', function(event) {
+            // Hide modal and reset form
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addSourceModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            // Reset form
+            this.reset();
+            
+            // Refresh sources list
+            refreshSources();
+        });
+    }
+    
+    // Handle edit source form submission
+    const editSourceForm = document.getElementById('edit-source-form');
+    if (editSourceForm) {
+        editSourceForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const sourceData = Object.fromEntries(formData);
+            
+            // Validate URL
+            if (!validateSourceURL(sourceData.url)) {
+                RSApp.showMessage('Please enter a valid URL', 'danger');
+                return;
+            }
+            
+            // Add checkboxes manually
+            sourceData.active = document.getElementById('edit-source-active').checked;
+            sourceData.is_rss = document.getElementById('edit-source-rss').checked;
+            sourceData.originalName = currentSourceName;
+            
+            updateSource(sourceData);
+        });
+    }
+
+    // Test modal functionality - explicit modal handling
+    const addSourceButton = document.querySelector('[data-bs-target="#addSourceModal"]');
+    if (addSourceButton) {
+        console.log('Add Source button found, adding click handler');
+        addSourceButton.addEventListener('click', function(e) {
+            console.log('Add Source button clicked - manual handler');
+            
+            // Try to show the modal manually if Bootstrap automatic doesn't work
+            const modal = document.getElementById('addSourceModal');
+            if (modal) {
+                console.log('Modal element found, attempting to show');
+                try {
+                    const bootstrapModal = new bootstrap.Modal(modal);
+                    bootstrapModal.show();
+                    console.log('Modal shown successfully via manual handler');
+                } catch (error) {
+                    console.error('Error showing modal manually:', error);
+                }
+            } else {
+                console.error('Modal element not found');
+            }
+        });
+    } else {
+        console.error('Add Source button not found');
+    }
+    
+    // Handle collapse icon rotation
+    const collapseElement = document.getElementById('dataSourcesCollapse');
+    const collapseButton = document.querySelector('[data-bs-target="#dataSourcesCollapse"]');
+    const collapseIcon = collapseButton?.querySelector('.collapse-icon');
+    
+    if (collapseElement && collapseIcon) {
+        collapseElement.addEventListener('show.bs.collapse', function() {
+            collapseIcon.classList.remove('collapsed');
+        });
+        
+        collapseElement.addEventListener('hide.bs.collapse', function() {
+            collapseIcon.classList.add('collapsed');
+        });
+        
+        // Set initial state - if collapsed, add the class
+        if (!collapseElement.classList.contains('show')) {
+            collapseIcon.classList.add('collapsed');
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,1021 @@
+{% extends "base.html" %}
+
+
+{% block title %}Knowledge Graph - Research Synthesis Engine{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-0 text-gradient">
+                    <i class="fas fa-project-diagram me-2"></i>Knowledge Graph
+                </h1>
+                <p class="text-muted mb-0">Explore entities and relationships in space industry intelligence</p>
+            </div>
+            <div>
+                <button class="btn btn-outline-primary" onclick="refreshGraph()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+                <button class="btn btn-primary ms-2" onclick="exportGraph()">
+                    <i class="fas fa-download me-1"></i>Export Graph
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Knowledge Graph Stats -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center stat-card">
+            <div class="card-body">
+                <div class="stat-icon text-primary mb-2">
+                    <i class="fas fa-circle-nodes" style="font-size: 2rem;"></i>
+                </div>
+                <div class="stat-number" id="total-entities">0</div>
+                <small class="text-muted fw-bold">Total Entities</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center stat-card">
+            <div class="card-body">
+                <div class="stat-icon text-success mb-2">
+                    <i class="fas fa-link" style="font-size: 2rem;"></i>
+                </div>
+                <div class="stat-number" id="total-relationships">0</div>
+                <small class="text-muted fw-bold">Relationships</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center stat-card">
+            <div class="card-body">
+                <div class="stat-icon text-info mb-2">
+                    <i class="fas fa-building" style="font-size: 2rem;"></i>
+                </div>
+                <div class="stat-number" id="total-companies">0</div>
+                <small class="text-muted fw-bold">Companies</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center stat-card">
+            <div class="card-body">
+                <div class="stat-icon text-warning mb-2">
+                    <i class="fas fa-cogs" style="font-size: 2rem;"></i>
+                </div>
+                <div class="stat-number" id="total-technologies">0</div>
+                <small class="text-muted fw-bold">Technologies</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stat-card {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stat-icon {
+    background: linear-gradient(45deg, currentColor, currentColor);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+</style>
+
+<!-- Entity Search -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-search me-2"></i>Entity Search
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="entity-search-form">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-lg" id="entity-search" 
+                                       placeholder="Search for companies, technologies, people..." autocomplete="off">
+                                <button class="btn btn-primary" type="submit" aria-label="Search entities">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <select class="form-select form-select-lg" id="entity-type-filter">
+                                <option value="">All Types</option>
+                                <option value="companies">Companies</option>
+                                <option value="technologies">Technologies</option>
+                                <option value="people">People</option>
+                                <option value="locations">Locations</option>
+                                <option value="products">Products</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Graph Visualization -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card graph-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-project-diagram me-2"></i>Graph Visualization
+                </h5>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="toggleSortOrder()">
+                        <i class="fas fa-sort me-1"></i>Sort Order
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="toggleEntityFilter()">
+                        <i class="fas fa-filter me-1"></i>Filter Type
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="showRelationshipView()">
+                        <i class="fas fa-share-alt me-1"></i>Relationships
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="knowledge-graph" class="graph-container position-relative">
+                    <div id="graph-placeholder" class="d-flex align-items-center justify-content-center h-100">
+                        <div class="text-center text-muted">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <h5>Loading Knowledge Graph</h5>
+                            <p>Preparing visualization...</p>
+                        </div>
+                    </div>
+                    <svg id="graph-svg" style="width: 100%; height: 100%; display: none;"></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.graph-card {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.graph-container {
+    height: 600px;
+    background: linear-gradient(145deg, #f8f9fa, #ffffff);
+    border-radius: 0 0 0.375rem 0.375rem;
+}
+
+#graph-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.graph-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+</style>
+
+<!-- Entity Details -->
+<div class="row" id="entity-details" style="display: none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Entity Details
+                </h5>
+            </div>
+            <div class="card-body" id="entity-details-content">
+                <!-- Entity details will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Entities by Category -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-star me-2"></i>Top Entities by Category
+                </h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="refreshTopEntities()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row" id="top-entities-container">
+                    <div class="col-md-4 mb-3">
+                        <h6 class="fw-semibold text-primary">Top Companies</h6>
+                        <div id="top-companies" class="d-flex flex-wrap gap-2">
+                            <div class="text-muted">
+                                <i class="fas fa-spinner fa-spin me-1"></i>Loading...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <h6 class="fw-semibold text-success">Top Locations</h6>
+                        <div id="top-locations" class="d-flex flex-wrap gap-2">
+                            <div class="text-muted">
+                                <i class="fas fa-spinner fa-spin me-1"></i>Loading...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <h6 class="fw-semibold text-warning">Top People</h6>
+                        <div id="top-people" class="d-flex flex-wrap gap-2">
+                            <div class="text-muted">
+                                <i class="fas fa-spinner fa-spin me-1"></i>Loading...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fallback message if no entities -->
+                <div id="no-entities-message" class="text-center text-muted py-4" style="display: none;">
+                    <i class="fas fa-database fa-2x mb-3 opacity-50"></i>
+                    <h6>No Entities Available</h6>
+                    <p class="mb-0">Run a scraping job to populate the knowledge graph with entities from space industry sources.</p>
+                    <button class="btn btn-primary btn-sm mt-2" onclick="window.location.href='/scraping'">
+                        <i class="fas fa-play me-1"></i>Start Scraping
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentEntity = null;
+
+function searchEntity(entityName) {
+    document.getElementById('entity-search').value = entityName;
+    performEntitySearch();
+}
+
+function performEntitySearch() {
+    const query = document.getElementById('entity-search').value;
+    const entityType = document.getElementById('entity-type-filter').value;
+    
+    if (!query.trim()) {
+        RSApp.showMessage('Please enter an entity name to search', 'warning');
+        return;
+    }
+    
+    RSApp.showLoading(true);
+    
+    axios.get(`/api/v1/knowledge/entities/${encodeURIComponent(query)}`)
+        .then(response => {
+            displayEntityDetails(response.data);
+        })
+        .catch(error => {
+            RSApp.showMessage('Entity search failed. Please try again.', 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+function displayEntityDetails(entity) {
+    const detailsContainer = document.getElementById('entity-details');
+    const contentContainer = document.getElementById('entity-details-content');
+    
+    currentEntity = entity;
+    
+    contentContainer.innerHTML = `
+        <div class="row">
+            <div class="col-md-8">
+                <h4>${entity.name}</h4>
+                <p class="text-muted">${entity.description}</p>
+                <div class="mb-3">
+                    <span class="badge bg-primary">${entity.type}</span>
+                </div>
+                
+                <h6>Relationships</h6>
+                ${entity.relationships.map(rel => `
+                    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                        <div>
+                            <strong>${rel.target}</strong>
+                            <small class="text-muted ms-2">${rel.relationship}</small>
+                        </div>
+                        <div>
+                            <div class="progress" style="width: 100px;">
+                                <div class="progress-bar" style="width: ${rel.strength * 100}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="col-md-4">
+                <h6>Metadata</h6>
+                <div class="list-group">
+                    ${Object.entries(entity.metadata).map(([key, value]) => `
+                        <div class="list-group-item">
+                            <strong>${key.replace('_', ' ').toUpperCase()}:</strong> ${value}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    detailsContainer.style.display = 'block';
+    detailsContainer.scrollIntoView({ behavior: 'smooth' });
+}
+
+let graphData = null;
+
+function refreshGraph() {
+    loadKnowledgeStats();
+    loadGraphVisualization();
+    RSApp.showMessage('Knowledge graph refreshed', 'success');
+}
+
+function loadGraphVisualization() {
+    axios.get('/api/v1/knowledge/graph/export')
+        .then(response => {
+            graphData = response.data;
+            renderGraph(graphData);
+        })
+        .catch(error => {
+            console.error('Failed to load graph data:', error);
+            document.getElementById('graph-placeholder').innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning"></i>
+                    <h5>Failed to Load Graph</h5>
+                    <p>Unable to load graph data. Please try refreshing.</p>
+                </div>
+            `;
+        });
+}
+
+function renderGraph(data) {
+    if (!data.nodes || data.nodes.length === 0) {
+        document.getElementById('graph-placeholder').innerHTML = `
+            <div class="text-center text-muted">
+                <i class="fas fa-database fa-3x mb-3"></i>
+                <h5>No Data Available</h5>
+                <p>No entities found to visualize. Run a scraping job to populate the knowledge graph.</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Hide placeholder and show SVG
+    document.getElementById('graph-placeholder').style.display = 'none';
+    document.getElementById('graph-svg').style.display = 'block';
+
+    const svg = d3.select('#graph-svg');
+    svg.selectAll("*").remove(); // Clear previous content
+    
+    // Get actual container dimensions
+    const container = document.getElementById('knowledge-graph');
+    const width = container.offsetWidth || 800;
+    const height = container.offsetHeight || 500;
+    
+    // Set SVG dimensions
+    svg.attr('viewBox', `0 0 ${width} ${height}`)
+       .attr('preserveAspectRatio', 'xMidYMid meet');
+
+    // Filter data by entity type if needed
+    let filteredNodes = currentEntityFilter === 'all' ? 
+        data.nodes : 
+        data.nodes.filter(d => (d.type || 'other') === currentEntityFilter);
+    
+    // Sort data based on current sort order
+    if (currentSortOrder === 'mentions') {
+        filteredNodes = filteredNodes.sort((a, b) => b.mention_count - a.mention_count);
+    } else {
+        filteredNodes = filteredNodes.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    
+    // Take top 20 for display
+    const sortedNodes = filteredNodes.slice(0, 20);
+
+    // Set up margins and dimensions for bar chart
+    const margin = {top: 20, right: 30, bottom: 100, left: 200};
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+
+    // Create main group
+    const g = svg.append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Create scales
+    const xScale = d3.scaleLinear()
+        .domain([0, d3.max(sortedNodes, d => d.mention_count)])
+        .range([0, chartWidth]);
+
+    const yScale = d3.scaleBand()
+        .domain(sortedNodes.map(d => d.name))
+        .range([0, chartHeight])
+        .padding(0.1);
+
+    // Color scale for different entity types
+    const colorScale = d3.scaleOrdinal()
+        .domain(['company', 'person', 'location', 'technology', 'other'])
+        .range(['#007bff', '#28a745', '#ffc107', '#17a2b8', '#6c757d']);
+
+    // Add bars
+    g.selectAll('.bar')
+        .data(sortedNodes)
+        .enter()
+        .append('rect')
+        .attr('class', 'bar')
+        .attr('x', 0)
+        .attr('y', d => yScale(d.name))
+        .attr('width', d => xScale(d.mention_count))
+        .attr('height', yScale.bandwidth())
+        .attr('fill', d => colorScale(d.type || 'other'))
+        .style('cursor', 'pointer')
+        .on('mouseover', function(event, d) {
+            d3.select(this).attr('opacity', 0.8);
+            showTooltip(event, d);
+        })
+        .on('mouseout', function() {
+            d3.select(this).attr('opacity', 1);
+            hideTooltip();
+        })
+        .on('click', function(event, d) {
+            showNodeDetails(d);
+        });
+
+    // Add value labels on bars
+    g.selectAll('.label')
+        .data(sortedNodes)
+        .enter()
+        .append('text')
+        .attr('class', 'label')
+        .attr('x', d => xScale(d.mention_count) + 5)
+        .attr('y', d => yScale(d.name) + yScale.bandwidth() / 2)
+        .attr('dy', '0.35em')
+        .style('font-size', '11px')
+        .style('fill', '#666')
+        .text(d => d.mention_count);
+
+    // Add Y axis (entity names)
+    g.append('g')
+        .call(d3.axisLeft(yScale))
+        .selectAll('text')
+        .style('font-size', '11px')
+        .style('fill', '#333')
+        .text(d => d.length > 25 ? d.substring(0, 25) + '...' : d);
+
+    // Add X axis (mention counts)
+    g.append('g')
+        .attr('transform', `translate(0,${chartHeight})`)
+        .call(d3.axisBottom(xScale))
+        .selectAll('text')
+        .style('font-size', '11px')
+        .style('fill', '#666');
+
+    // Add X axis label
+    g.append('text')
+        .attr('transform', `translate(${chartWidth / 2}, ${chartHeight + 40})`)
+        .style('text-anchor', 'middle')
+        .style('font-size', '12px')
+        .style('fill', '#666')
+        .text('Mention Count');
+
+    // Add chart title
+    g.append('text')
+        .attr('transform', `translate(${chartWidth / 2}, -5)`)
+        .style('text-anchor', 'middle')
+        .style('font-size', '14px')
+        .style('font-weight', 'bold')
+        .style('fill', '#333')
+        .text('Top Entities by Mention Count');
+}
+
+function renderRelationshipChart(data) {
+    if (!data.edges || data.edges.length === 0) {
+        document.getElementById('graph-placeholder').style.display = 'block';
+        document.getElementById('graph-svg').style.display = 'none';
+        document.getElementById('graph-placeholder').innerHTML = `
+            <div class="text-center text-muted">
+                <i class="fas fa-share-alt fa-3x mb-3"></i>
+                <h5>No Relationships Available</h5>
+                <p>No relationships found between entities. The system will generate logical connections when more data is available.</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Hide placeholder and show SVG
+    document.getElementById('graph-placeholder').style.display = 'none';
+    document.getElementById('graph-svg').style.display = 'block';
+
+    const svg = d3.select('#graph-svg');
+    svg.selectAll("*").remove();
+    
+    // Get dimensions
+    const container = document.getElementById('knowledge-graph');
+    const width = container.offsetWidth || 800;
+    const height = container.offsetHeight || 500;
+    
+    svg.attr('viewBox', `0 0 ${width} ${height}`)
+       .attr('preserveAspectRatio', 'xMidYMid meet');
+
+    // Create node lookup
+    const nodeById = {};
+    data.nodes.forEach(node => {
+        nodeById[node.id] = node;
+    });
+
+    // Prepare relationship data for visualization
+    const relationshipCounts = {};
+    data.edges.forEach(edge => {
+        const key = edge.relationship || 'unknown';
+        relationshipCounts[key] = (relationshipCounts[key] || 0) + 1;
+    });
+
+    // Convert to array and sort
+    const relationshipData = Object.entries(relationshipCounts)
+        .map(([type, count]) => ({ type, count }))
+        .sort((a, b) => b.count - a.count);
+
+    // Set up margins for bar chart
+    const margin = {top: 40, right: 30, bottom: 100, left: 150};
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+
+    const g = svg.append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Create scales
+    const xScale = d3.scaleLinear()
+        .domain([0, d3.max(relationshipData, d => d.count)])
+        .range([0, chartWidth]);
+
+    const yScale = d3.scaleBand()
+        .domain(relationshipData.map(d => d.type))
+        .range([0, chartHeight])
+        .padding(0.1);
+
+    // Color scale for relationship types
+    const relationshipColors = d3.scaleOrdinal()
+        .domain(['collaborates_in', 'competes_with', 'partners_with', 'employs', 'operates_in', 'works_with', 'targets', 'explores'])
+        .range(['#28a745', '#dc3545', '#007bff', '#ffc107', '#17a2b8', '#6c757d', '#fd7e14', '#6f42c1']);
+
+    // Add bars
+    g.selectAll('.rel-bar')
+        .data(relationshipData)
+        .enter()
+        .append('rect')
+        .attr('class', 'rel-bar')
+        .attr('x', 0)
+        .attr('y', d => yScale(d.type))
+        .attr('width', d => xScale(d.count))
+        .attr('height', yScale.bandwidth())
+        .attr('fill', d => relationshipColors(d.type))
+        .style('cursor', 'pointer')
+        .on('mouseover', function(event, d) {
+            d3.select(this).attr('opacity', 0.8);
+            showRelationshipTooltip(event, d);
+        })
+        .on('mouseout', function() {
+            d3.select(this).attr('opacity', 1);
+            hideTooltip();
+        })
+        .on('click', function(event, d) {
+            showRelationshipDetails(d, data.edges);
+        });
+
+    // Add value labels
+    g.selectAll('.rel-label')
+        .data(relationshipData)
+        .enter()
+        .append('text')
+        .attr('class', 'rel-label')
+        .attr('x', d => xScale(d.count) + 5)
+        .attr('y', d => yScale(d.type) + yScale.bandwidth() / 2)
+        .attr('dy', '0.35em')
+        .style('font-size', '11px')
+        .style('fill', '#666')
+        .text(d => d.count);
+
+    // Add Y axis
+    g.append('g')
+        .call(d3.axisLeft(yScale))
+        .selectAll('text')
+        .style('font-size', '11px')
+        .style('fill', '#333')
+        .text(d => d.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+
+    // Add X axis
+    g.append('g')
+        .attr('transform', `translate(0,${chartHeight})`)
+        .call(d3.axisBottom(xScale))
+        .selectAll('text')
+        .style('font-size', '11px')
+        .style('fill', '#666');
+
+    // Add labels
+    g.append('text')
+        .attr('transform', `translate(${chartWidth / 2}, ${chartHeight + 40})`)
+        .style('text-anchor', 'middle')
+        .style('font-size', '12px')
+        .style('fill', '#666')
+        .text('Number of Relationships');
+
+    g.append('text')
+        .attr('transform', `translate(${chartWidth / 2}, -10)`)
+        .style('text-anchor', 'middle')
+        .style('font-size', '14px')
+        .style('font-weight', 'bold')
+        .style('fill', '#333')
+        .text('Entity Relationships by Type');
+}
+
+function showRelationshipTooltip(event, d) {
+    const tooltip = d3.select('body').append('div')
+        .attr('id', 'graph-tooltip')
+        .attr('class', 'graph-tooltip')
+        .style('left', (event.pageX + 10) + 'px')
+        .style('top', (event.pageY - 10) + 'px')
+        .html(`<strong>${d.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</strong><br/>Count: ${d.count}<br/>Click to see details`);
+}
+
+function showRelationshipDetails(relationshipType, allEdges) {
+    const relatedEdges = allEdges.filter(edge => edge.relationship === relationshipType.type);
+    
+    let detailsHtml = `
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">${relationshipType.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Relationships</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Total Count:</strong> ${relationshipType.count}</p>
+                <h6 class="mt-3">Examples:</h6>
+                <div class="list-group">
+    `;
+    
+    relatedEdges.slice(0, 5).forEach(edge => {
+        const sourceNode = graphData.nodes.find(n => n.id === edge.source);
+        const targetNode = graphData.nodes.find(n => n.id === edge.target);
+        if (sourceNode && targetNode) {
+            detailsHtml += `
+                <div class="list-group-item">
+                    <strong>${sourceNode.name}</strong> ${relationshipType.type.replace(/_/g, ' ')} <strong>${targetNode.name}</strong>
+                    <small class="text-muted d-block">Confidence: ${Math.round(edge.confidence * 100)}%</small>
+                </div>
+            `;
+        }
+    });
+    
+    detailsHtml += '</div></div></div>';
+    
+    const detailsContainer = document.getElementById('entity-details-content');
+    detailsContainer.innerHTML = detailsHtml;
+    document.getElementById('entity-details').style.display = 'block';
+    document.getElementById('entity-details').scrollIntoView({ behavior: 'smooth' });
+}
+
+function showNodeDetails(node) {
+    const detailsHtml = `
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">${node.name}</h6>
+                <button class="btn btn-sm btn-primary" onclick="queryEntityArticles(${node.id}, '${node.name}')">
+                    <i class="fas fa-newspaper me-1"></i>View Articles
+                </button>
+            </div>
+            <div class="card-body">
+                <p><strong>Type:</strong> ${node.type}</p>
+                <p><strong>Sector:</strong> ${node.space_sector}</p>
+                <p><strong>Mentions:</strong> ${node.mention_count}</p>
+                <p><strong>Space Related:</strong> ${node.space_related ? 'Yes' : 'No'}</p>
+            </div>
+        </div>
+        <div id="entity-articles-${node.id}" class="mt-3" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Related Articles</h6>
+                </div>
+                <div class="card-body">
+                    <div id="articles-content-${node.id}">
+                        <div class="text-center">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span class="ms-2">Loading articles...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const detailsContainer = document.getElementById('entity-details-content');
+    detailsContainer.innerHTML = detailsHtml;
+    document.getElementById('entity-details').style.display = 'block';
+    document.getElementById('entity-details').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function queryEntityArticles(entityId, entityName) {
+    const articlesContainer = document.getElementById(`entity-articles-${entityId}`);
+    const articlesContent = document.getElementById(`articles-content-${entityId}`);
+    
+    // Show the articles section
+    articlesContainer.style.display = 'block';
+    
+    try {
+        const response = await fetch(`/api/v1/knowledge/entities/${entityId}/articles`);
+        const data = await response.json();
+        
+        if (data.articles && data.articles.length > 0) {
+            let articlesHtml = '';
+            data.articles.forEach(article => {
+                articlesHtml += `
+                    <div class="article-item mb-3 p-3 border rounded">
+                        <h6 class="fw-bold mb-2">
+                            ${article.url ? `<a href="${article.url}" target="_blank" class="text-decoration-none">${article.title}</a>` : article.title}
+                        </h6>
+                        ${article.published_date ? `<small class="text-muted d-block mb-2">Published: ${new Date(article.published_date).toLocaleDateString()}</small>` : ''}
+                        ${article.summary ? `<p class="text-muted mb-0">${article.summary}</p>` : ''}
+                    </div>
+                `;
+            });
+            articlesContent.innerHTML = articlesHtml;
+        } else {
+            articlesContent.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-newspaper fa-2x mb-2 opacity-50"></i>
+                    <p>No articles found mentioning "${entityName}"</p>
+                    <small>Articles may not be available or entity name may not be indexed yet.</small>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error fetching articles:', error);
+        articlesContent.innerHTML = `
+            <div class="text-center text-danger">
+                <i class="fas fa-exclamation-triangle mb-2"></i>
+                <p>Error loading articles for "${entityName}"</p>
+                <small>Please try again later.</small>
+            </div>
+        `;
+    }
+}
+
+function showTooltip(event, d) {
+    const tooltip = d3.select('body').append('div')
+        .attr('id', 'graph-tooltip')
+        .attr('class', 'graph-tooltip')
+        .style('left', (event.pageX + 10) + 'px')
+        .style('top', (event.pageY - 10) + 'px')
+        .html(`<strong>${d.name}</strong><br/>Type: ${d.type}<br/>Mentions: ${d.mention_count}`);
+}
+
+function hideTooltip() {
+    d3.select('#graph-tooltip').remove();
+}
+
+let currentSortOrder = 'mentions'; // 'mentions' or 'alphabetical'
+let currentEntityFilter = 'all'; // 'all', 'company', 'person', etc.
+let currentView = 'entities'; // 'entities' or 'relationships'
+
+function toggleSortOrder() {
+    if (!graphData) {
+        RSApp.showMessage('No data loaded', 'warning');
+        return;
+    }
+    
+    currentSortOrder = currentSortOrder === 'mentions' ? 'alphabetical' : 'mentions';
+    renderGraph(graphData);
+    
+    const sortType = currentSortOrder === 'mentions' ? 'by Mentions' : 'Alphabetically';
+    RSApp.showMessage(`Chart sorted ${sortType}`, 'info');
+}
+
+function toggleEntityFilter() {
+    if (!graphData) {
+        RSApp.showMessage('No data loaded', 'warning');
+        return;
+    }
+    
+    const filterTypes = ['all', 'company', 'person', 'location', 'technology'];
+    const currentIndex = filterTypes.indexOf(currentEntityFilter);
+    const nextIndex = (currentIndex + 1) % filterTypes.length;
+    currentEntityFilter = filterTypes[nextIndex];
+    
+    renderGraph(graphData);
+    
+    const filterLabel = currentEntityFilter === 'all' ? 'All Types' : 
+                       currentEntityFilter.charAt(0).toUpperCase() + currentEntityFilter.slice(1) + 's';
+    RSApp.showMessage(`Showing: ${filterLabel}`, 'info');
+}
+
+function showRelationshipView() {
+    if (!graphData) {
+        RSApp.showMessage('No data loaded', 'warning');
+        return;
+    }
+    
+    if (currentView === 'entities') {
+        currentView = 'relationships';
+        renderRelationshipChart(graphData);
+        RSApp.showMessage('Showing relationship connections', 'info');
+    } else {
+        currentView = 'entities';
+        renderGraph(graphData);
+        RSApp.showMessage('Showing entity mentions', 'info');
+    }
+}
+
+function exportGraph() {
+    RSApp.showLoading(true);
+    
+    axios.get('/api/v1/knowledge/graph/export')
+        .then(response => {
+            const data = response.data;
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `knowledge_graph_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            RSApp.showMessage('Knowledge graph exported successfully', 'success');
+        })
+        .catch(error => {
+            RSApp.showMessage('Export failed. Please try again.', 'danger');
+        })
+        .finally(() => {
+            RSApp.showLoading(false);
+        });
+}
+
+
+function loadKnowledgeStats() {
+    axios.get('/api/v1/knowledge/')
+        .then(response => {
+            const data = response.data;
+            document.getElementById('total-entities').textContent = data.total_entities || 0;
+            document.getElementById('total-relationships').textContent = data.total_relationships || 0;
+            document.getElementById('total-companies').textContent = Math.floor((data.total_entities || 0) * 0.3);
+            document.getElementById('total-technologies').textContent = Math.floor((data.total_entities || 0) * 0.2);
+        })
+        .catch(error => {
+            console.error('Failed to load knowledge stats:', error);
+        });
+}
+
+// Handle form submission
+document.getElementById('entity-search-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    performEntitySearch();
+});
+
+// Auto-search on Enter key
+document.getElementById('entity-search').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        performEntitySearch();
+    }
+});
+
+// Handle window resize
+window.addEventListener('resize', function() {
+    if (graphData) {
+        // Reload the chart with new dimensions
+        setTimeout(() => renderGraph(graphData), 100);
+    }
+});
+
+function refreshTopEntities() {
+    loadTopEntities();
+    RSApp.showMessage('Top entities refreshed', 'info');
+}
+
+function loadTopEntities() {
+    // Load top entities by category from the API
+    axios.get('/api/v1/knowledge/entities/top?limit=5')
+        .then(response => {
+            const data = response.data;
+            populateTopEntities(data);
+        })
+        .catch(error => {
+            console.error('Failed to load top entities:', error);
+            showEmptyEntitiesMessage();
+        });
+}
+
+function populateTopEntities(entities) {
+    const companiesContainer = document.getElementById('top-companies');
+    const locationsContainer = document.getElementById('top-locations');  
+    const peopleContainer = document.getElementById('top-people');
+    const noEntitiesMessage = document.getElementById('no-entities-message');
+    const topEntitiesContainer = document.getElementById('top-entities-container');
+    
+    // Check if we have data with proper structure
+    const entitiesData = entities.top_entities || entities;
+    
+    // Filter entities by type
+    const companies = entitiesData.filter(e => (e.entity_type || e.type) === 'company').slice(0, 5);
+    const locations = entitiesData.filter(e => (e.entity_type || e.type) === 'location').slice(0, 5);
+    const people = entitiesData.filter(e => (e.entity_type || e.type) === 'person').slice(0, 5);
+    
+    // Check if we have any entities at all
+    if (entitiesData.length === 0) {
+        showEmptyEntitiesMessage();
+        return;
+    }
+    
+    // Show entities container and hide no-entities message
+    topEntitiesContainer.style.display = 'block';
+    noEntitiesMessage.style.display = 'none';
+    
+    // Populate companies
+    if (companies.length > 0) {
+        companiesContainer.innerHTML = companies.map(entity => 
+            `<button class="btn btn-outline-primary btn-sm" onclick="searchEntity('${entity.name}')">
+                ${entity.name} <span class="badge bg-light text-dark ms-1">${entity.mention_count}</span>
+            </button>`
+        ).join('');
+    } else {
+        companiesContainer.innerHTML = '<small class="text-muted">No companies found</small>';
+    }
+    
+    // Populate locations
+    if (locations.length > 0) {
+        locationsContainer.innerHTML = locations.map(entity => 
+            `<button class="btn btn-outline-success btn-sm" onclick="searchEntity('${entity.name}')">
+                ${entity.name} <span class="badge bg-light text-dark ms-1">${entity.mention_count}</span>
+            </button>`
+        ).join('');
+    } else {
+        locationsContainer.innerHTML = '<small class="text-muted">No locations found</small>';
+    }
+    
+    // Populate people
+    if (people.length > 0) {
+        peopleContainer.innerHTML = people.map(entity => 
+            `<button class="btn btn-outline-warning btn-sm" onclick="searchEntity('${entity.name}')">
+                ${entity.name} <span class="badge bg-light text-dark ms-1">${entity.mention_count}</span>
+            </button>`
+        ).join('');
+    } else {
+        peopleContainer.innerHTML = '<small class="text-muted">No people found</small>';
+    }
+}
+
+function showEmptyEntitiesMessage() {
+    const topEntitiesContainer = document.getElementById('top-entities-container');
+    const noEntitiesMessage = document.getElementById('no-entities-message');
+    
+    topEntitiesContainer.style.display = 'none';
+    noEntitiesMessage.style.display = 'block';
+}
+
+// Load initial stats, graph, and top entities
+loadKnowledgeStats();
+loadGraphVisualization();
+loadTopEntities();
+</script>
+{% endblock %}

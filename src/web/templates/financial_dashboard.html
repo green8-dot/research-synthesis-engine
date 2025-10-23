@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - OrbitScope Intelligence Suite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c5aa0;
+            --secondary-color: #34495e;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --dark-bg: #1a1a1a;
+            --card-bg: #2d3436;
+            --text-light: #ddd;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-light);
+        }
+
+        .financial-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .financial-kpi {
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .financial-kpi:hover {
+            transform: translateY(-5px);
+        }
+
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .kpi-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .financial-chart {
+            height: 300px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .plaid-status {
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .plaid-connected {
+            background: rgba(39, 174, 96, 0.2);
+            color: #2ecc71;
+            border: 1px solid #2ecc71;
+        }
+
+        .plaid-disconnected {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+
+        .transaction-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .transaction-amount {
+            font-weight: bold;
+        }
+
+        .amount-positive {
+            color: var(--success-color);
+        }
+
+        .amount-negative {
+            color: var(--danger-color);
+        }
+
+        .account-card {
+            background: linear-gradient(135deg, rgba(44, 90, 160, 0.2), rgba(52, 73, 94, 0.2));
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .account-balance {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .account-type {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: rgba(0, 0, 0, 0.2);">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-satellite-dish me-2"></i>OrbitScope Intelligence Suite
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard"><i class="fas fa-home me-1"></i>Dashboard</a>
+                <a class="nav-link active" href="/financial"><i class="fas fa-chart-line me-1"></i>Financial</a>
+                <a class="nav-link" href="/research"><i class="fas fa-search me-1"></i>Research</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="text-white mb-3">
+                    <i class="fas fa-wallet me-2"></i>Financial Intelligence Dashboard
+                </h1>
+                <div class="financial-card">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5>MoneyMan ML Financial Advisor Integration</h5>
+                            <p class="mb-0">AI-powered financial insights with Plaid banking integration</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <span class="plaid-disconnected" id="plaid-status">
+                                <i class="fas fa-unlink me-1"></i>Plaid Not Connected
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial KPIs -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="financial-card financial-kpi">
+                    <i class="fas fa-dollar-sign fa-2x text-success mb-3"></i>
+                    <div class="kpi-value text-success" id="total-balance">$0.00</div>
+                    <div class="kpi-label">Total Balance</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="financial-card financial-kpi">
+                    <i class="fas fa-arrow-down fa-2x text-danger mb-3"></i>
+                    <div class="kpi-value text-danger" id="monthly-expenses">$0.00</div>
+                    <div class="kpi-label">Monthly Expenses</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="financial-card financial-kpi">
+                    <i class="fas fa-arrow-up fa-2x text-primary mb-3"></i>
+                    <div class="kpi-value text-primary" id="monthly-income">$0.00</div>
+                    <div class="kpi-label">Monthly Income</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="financial-card financial-kpi">
+                    <i class="fas fa-chart-line fa-2x text-warning mb-3"></i>
+                    <div class="kpi-value text-warning" id="savings-rate">0%</div>
+                    <div class="kpi-label">Savings Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Accounts Overview -->
+            <div class="col-md-6">
+                <div class="financial-card">
+                    <h5 class="mb-3">
+                        <i class="fas fa-university me-2"></i>Connected Accounts
+                    </h5>
+                    <div id="accounts-list">
+                        <div class="account-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="account-type">Demo Checking Account</div>
+                                    <div class="text-muted small">****1234</div>
+                                </div>
+                                <div class="account-balance">$2,547.83</div>
+                            </div>
+                        </div>
+                        <div class="account-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="account-type">Savings Account</div>
+                                    <div class="text-muted small">****5678</div>
+                                </div>
+                                <div class="account-balance">$8,921.45</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mt-3" onclick="connectBankAccount()">
+                        <i class="fas fa-plus me-2"></i>Connect Bank Account
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="col-md-6">
+                <div class="financial-card">
+                    <h5 class="mb-3">
+                        <i class="fas fa-exchange-alt me-2"></i>Recent Transactions
+                    </h5>
+                    <div id="transactions-list">
+                        <div class="transaction-item">
+                            <div>
+                                <div class="fw-bold">Grocery Store</div>
+                                <div class="text-muted small">Yesterday</div>
+                            </div>
+                            <div class="transaction-amount amount-negative">-$87.42</div>
+                        </div>
+                        <div class="transaction-item">
+                            <div>
+                                <div class="fw-bold">Salary Deposit</div>
+                                <div class="text-muted small">3 days ago</div>
+                            </div>
+                            <div class="transaction-amount amount-positive">+$3,500.00</div>
+                        </div>
+                        <div class="transaction-item">
+                            <div>
+                                <div class="fw-bold">Utility Bill</div>
+                                <div class="text-muted small">1 week ago</div>
+                            </div>
+                            <div class="transaction-amount amount-negative">-$145.67</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline-light btn-sm mt-3">
+                        View All Transactions
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Insights -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="financial-card">
+                    <h5 class="mb-3">
+                        <i class="fas fa-brain me-2"></i>AI Financial Insights
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="alert alert-info">
+                                <i class="fas fa-lightbulb me-2"></i>
+                                <strong>Spending Pattern:</strong> Your grocery spending is 15% higher than last month.
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="alert alert-success">
+                                <i class="fas fa-thumbs-up me-2"></i>
+                                <strong>Good News:</strong> You're on track to save $450 this month.
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Opportunity:</strong> Consider a high-yield savings account.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Chat Assistant -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="financial-card">
+                    <h5 class="mb-3">
+                        <i class="fas fa-comments me-2"></i>Financial AI Assistant
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Ask about your finances..." id="chat-input">
+                                <button class="btn btn-primary" onclick="sendFinancialQuery()" aria-label="Action button">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            <div class="mt-3" id="chat-response" style="min-height: 100px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 15px; color: #ffffff;">
+                                <div style="color: #cccccc;">
+                                    <i class="fas fa-robot me-2"></i>
+                                    Ask me anything about your finances, spending patterns, or investment opportunities!
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h6>Quick Actions</h6>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-light btn-sm" onclick="quickQuery('budget analysis')">Budget Analysis</button>
+                                    <button class="btn btn-outline-light btn-sm" onclick="quickQuery('investment advice')">Investment Advice</button>
+                                    <button class="btn btn-outline-light btn-sm" onclick="quickQuery('expense report')">Expense Report</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function connectPlaid() {
+            // Integration with Plaid Link
+            alert('Plaid integration would be initialized here. For demo purposes, this connects to the Plaid sandbox environment.');
+        }
+
+        function sendFinancialQuery() {
+            const input = document.getElementById('chat-input');
+            const response = document.getElementById('chat-response');
+            const query = input.value.trim();
+            
+            if (!query) return;
+            
+            response.innerHTML = '<div style="color: #87ceeb;"><i class="fas fa-spinner fa-spin me-2"></i>Analyzing your financial data...</div>';
+            
+            // Simulate AI response
+            setTimeout(() => {
+                response.innerHTML = `
+                    <div class="mb-2" style="color: #ffffff;">
+                        <strong style="color: #87ceeb;">Financial AI:</strong> Based on your spending patterns and the query "${query}", here are my insights:
+                    </div>
+                    <ul class="mb-0" style="color: #e0e0e0;">
+                        <li>Your current financial health score is 8.2/10</li>
+                        <li>Recommended action: Consider increasing your emergency fund by $200/month</li>
+                        <li>Investment opportunity: Your savings rate allows for moderate risk investments</li>
+                    </ul>
+                `;
+            }, 2000);
+            
+            input.value = '';
+        }
+
+        function quickQuery(type) {
+            document.getElementById('chat-input').value = `Generate ${type} for my accounts`;
+            sendFinancialQuery();
+        }
+
+        // Initialize Plaid Link
+        let linkHandler = null;
+        
+        async function initializePlaidLink() {
+            try {
+                // Get Link token from backend
+                const response = await fetch('/api/v1/plaid/create-link-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ user_id: 'user_001' })
+                });
+                
+                const data = await response.json();
+                
+                // Handle demo mode or configuration errors
+                if (data.demo_mode || data.error) {
+                    console.warn('Plaid in demo mode or not configured:', data.error || 'Demo mode active');
+                    // Show configuration instructions
+                    showPlaidConfigurationMessage(data);
+                    return;
+                }
+                
+                if (data.success && data.link_token) {
+                    linkHandler = Plaid.create({
+                        token: data.link_token,
+                        onSuccess: async (public_token, metadata) => {
+                            console.log('Plaid Link successful:', metadata);
+                            await exchangePublicToken(public_token);
+                        },
+                        onLoad: () => {
+                            console.log('Plaid Link loaded');
+                        },
+                        onExit: (err, metadata) => {
+                            if (err) console.error('Plaid Link error:', err);
+                            console.log('Plaid Link exit:', metadata);
+                        },
+                        onEvent: (eventName, metadata) => {
+                            console.log('Plaid Link event:', eventName, metadata);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error initializing Plaid Link:', error);
+            }
+        }
+        
+        async function exchangePublicToken(publicToken) {
+            try {
+                const response = await fetch('/api/v1/plaid/exchange-public-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        public_token: publicToken,
+                        user_id: 'user_001'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log('Bank account connected successfully');
+                    updateConnectionStatus(true);
+                    loadAccountData();
+                }
+            } catch (error) {
+                console.error('Error exchanging public token:', error);
+            }
+        }
+        
+        function connectBankAccount() {
+            if (linkHandler) {
+                linkHandler.open();
+            } else {
+                // Try to initialize again or show configuration message
+                initializePlaidLink().then(() => {
+                    if (linkHandler) {
+                        linkHandler.open();
+                    } else {
+                        showPlaidNotConfiguredAlert();
+                    }
+                });
+            }
+        }
+        
+        function showPlaidConfigurationMessage(data) {
+            const alertHtml = `
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Bank Connection Not Configured</h5>
+                    <p>${data.error || 'Plaid integration requires configuration.'}</p>
+                    ${data.instructions ? '<hr><p class="mb-1"><strong>Setup Instructions:</strong></p><ol class="mb-0">' + 
+                        data.instructions.map(step => `<li>${step}</li>`).join('') + '</ol>' : ''}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            
+            // Insert alert at top of page
+            const container = document.querySelector('.container-fluid');
+            if (container) {
+                container.insertAdjacentHTML('afterbegin', alertHtml);
+            }
+        }
+        
+        function showPlaidNotConfiguredAlert() {
+            const alertHtml = `
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Connect Your Bank Account</h5>
+                    <p>To enable bank connections, Plaid needs to be configured with API credentials.</p>
+                    <hr>
+                    <p class="mb-2"><strong>Quick Setup:</strong></p>
+                    <ol class="mb-3">
+                        <li>Sign up for free at <a href="https://plaid.com" target="_blank">plaid.com</a></li>
+                        <li>Get your sandbox API keys from the dashboard</li>
+                        <li>Set environment variables:
+                            <pre class="bg-dark text-light p-2 mt-2">set PLAID_CLIENT_ID=your_client_id
+set PLAID_SECRET=your_secret_key</pre>
+                        </li>
+                        <li>Restart the application</li>
+                    </ol>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="window.open('https://plaid.com/docs/quickstart/', '_blank')">
+                        <i class="fas fa-external-link-alt me-1"></i>View Documentation
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            
+            // Insert alert at top of page
+            const container = document.querySelector('.container-fluid');
+            if (container) {
+                // Remove any existing alerts first
+                container.querySelectorAll('.alert').forEach(alert => alert.remove());
+                container.insertAdjacentHTML('afterbegin', alertHtml);
+            }
+        }
+        
+        async function loadAccountData() {
+            try {
+                const response = await fetch('/api/v1/plaid/financial-summary');
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const summary = data.data.summary;
+                    document.getElementById('total-balance').textContent = `$${summary.total_balance.toFixed(2)}`;
+                    document.getElementById('monthly-expenses').textContent = `$${summary.monthly_spending.toFixed(2)}`;
+                    document.getElementById('monthly-income').textContent = `$${Math.abs(summary.monthly_income).toFixed(2)}`;
+                    
+                    // Calculate savings rate safely
+                    const savingsRate = summary.monthly_income !== 0 ? 
+                        ((summary.net_cash_flow / Math.abs(summary.monthly_income)) * 100).toFixed(1) : 0;
+                    document.getElementById('savings-rate').textContent = `${savingsRate}%`;
+                    
+                    // Show demo mode indicator if applicable
+                    if (data.data.demo_mode) {
+                        document.getElementById('plaid-status').innerHTML += ' <span class="badge bg-info ms-1">Demo</span>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading account data:', error);
+                // Set default values on error
+                document.getElementById('total-balance').textContent = '$0.00';
+                document.getElementById('monthly-expenses').textContent = '$0.00';
+                document.getElementById('monthly-income').textContent = '$0.00';
+                document.getElementById('savings-rate').textContent = '0%';
+            }
+        }
+        
+        async function checkConnectionStatus() {
+            try {
+                const response = await fetch('/api/v1/plaid/connection-status');
+                const data = await response.json();
+                
+                if (data.connected) {
+                    updateConnectionStatus(true);
+                    loadAccountData();
+                } else {
+                    updateConnectionStatus(false);
+                }
+            } catch (error) {
+                console.error('Error checking connection status:', error);
+                updateConnectionStatus(false);
+            }
+        }
+        
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('plaid-status');
+            if (connected) {
+                statusElement.innerHTML = '<i class="fas fa-link me-1"></i>Bank Connected';
+                statusElement.className = 'plaid-status plaid-connected';
+            } else {
+                statusElement.innerHTML = '<i class="fas fa-unlink me-1"></i>Not Connected';
+                statusElement.className = 'plaid-status plaid-disconnected';
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkConnectionStatus();
+            initializePlaidLink();
+        });
+
+        // Handle Enter key in chat input
+        document.getElementById('chat-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendFinancialQuery();
+            }
+        });
+    </script>
+</body>
+</html>

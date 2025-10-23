@@ -1,0 +1,1206 @@
+{% extends "base.html" %}
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">{% block title %}Automation Ideas - Research Synthesis Engine{% endblock %}
+
+{% block extra_css %}
+<style>
+.idea-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    background: white;
+}
+
+.idea-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.productivity-badge {
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.difficulty-easy { background-color: #d4edda; color: #155724; }
+.difficulty-medium { background-color: #fff3cd; color: #856404; }
+.difficulty-hard { background-color: #f8d7da; color: #721c24; }
+
+.category-badge {
+    background-color: #e9ecef;
+    color: #495057;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.priority-score {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.discovery-controls {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.source-rank {
+    background: #f8f9fa;
+    border-left: 4px solid #007bff;
+    padding: 0.5rem 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.loading-spinner {
+    display: none;
+    text-align: center;
+    padding: 2rem;
+}
+
+.tag {
+    background-color: #6c757d;
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    margin-right: 0.25rem;
+}
+
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+.collapse-icon.collapsed {
+    transform: rotate(-90deg);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-0 text-gradient">
+                    <i class="fas fa-robot me-2"></i>Automation Ideas
+                </h1>
+                <p class="text-muted mb-0">Discover productivity automation opportunities from top sources</p>
+            </div>
+            <div>
+                <button class="btn btn-success" onclick="console.log('Button clicked'); discoverIdeas();" id="discover-button">
+                    <i class="fas fa-search me-1"></i>Discover Ideas
+                </button>
+                <button class="btn btn-primary ms-2" onclick="refreshCategories()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Discovery Controls -->
+<div class="discovery-controls">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h5 class="mb-2"><i class="fas fa-lightbulb me-2"></i>Automation Discovery</h5>
+            <p class="mb-0">Find new productivity automation ideas from Reddit communities and rank them by impact</p>
+        </div>
+    </div>
+</div>
+
+<!-- Loading State -->
+<div class="loading-spinner hidden-element" id="loading-spinner">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-2">Discovering automation ideas from multiple sources...</p>
+</div>
+
+<!-- Discovery Results -->
+<div id="discovery-results" class="hidden-element">
+    <!-- Summary Cards -->
+    <div class="row mb-4" id="summary-cards">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="stat-number" id="total-ideas">0</div>
+                        <div class="stat-label">Ideas Found</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="stat-number" id="avg-productivity">0%</div>
+                        <div class="stat-label">Avg Productivity</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="stat-number" id="best-source">-</div>
+                        <div class="stat-label">Best Source</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="stat-number" id="discovery-time">-</div>
+                        <div class="stat-label">Last Discovery</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Ideas -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center w-100 justify-content-between" 
+                            type="button" data-bs-toggle="collapse" data-bs-target="#topIdeasCollapse">
+                        <span>
+                            <i class="fas fa-star me-2"></i>Top Automation Ideas
+                            <small class="text-muted ms-2">(<span id="ideas-count">0</span> ideas)</small>
+                        </span>
+                        <i class="fas fa-chevron-down collapse-icon"></i>
+                    </button>
+                </div>
+                <div class="collapse show" id="topIdeasCollapse">
+                    <div class="card-body">
+                        <div id="top-ideas-container">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-search fa-3x mb-3"></i>
+                                <p>Click "Discover Ideas" to find automation opportunities</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Source Rankings -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trophy me-2"></i>Source Rankings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="source-rankings-container">
+                        <div class="text-center text-muted">
+                            <p>Source quality rankings will appear here after discovery</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Categories -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-folder me-2"></i>Categories Available
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="categories-container">
+                        <button class="btn btn-outline-primary btn-sm" onclick="loadCategories()">
+                            <i class="fas fa-sync me-1"></i>Load Categories
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Implementation Recommendations -->
+    <div class="row hidden-element" id="recommendations-section">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks me-2"></i>Implementation Recommendations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="recommendations-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chat Assistant for Targeted Automation Ideas -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comments me-2"></i>AI Automation Assistant
+                    </h5>
+                    <small class="text-muted">Ask for specific automation ideas for your business</small>
+                </div>
+                <div class="card-body">
+                    <div id="chat-container" style="height: 400px; border: 2px solid #444; border-radius: 10px; padding: 1rem; overflow-y: auto; background: linear-gradient(145deg, #1a1a1a, #0d0d0d); box-shadow: inset 0 2px 10px rgba(0,0,0,0.8); position: relative;">
+                        <div id="chat-messages" class="p-3">
+                            <div class="chat-message bot-message">
+                                <div class="d-flex">
+                                    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 14px;">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <div class="message-content">
+                                        <div class="message-bubble bg-white p-3 rounded shadow-sm">
+                                            <p class="mb-1">👋 Hello! I'm your automation assistant. I can help you find specific automation ideas for your business.</p>
+                                            <p class="mb-0 small">Try asking things like:</p>
+                                            <ul class="small mb-0 mt-1">
+                                                <li>"What manufacturing processes can be automated?"</li>
+                                                <li>"Show me customer service automation ideas"</li>
+                                                <li>"How can I automate data entry tasks?"</li>
+                                            </ul>
+                                        </div>
+                                        <small class="text-muted">Just now</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chat-input" placeholder="Ask for specific automation ideas..." 
+                               onkeypress="if(event.key==='Enter') sendChatMessage()">
+                        <button class="btn btn-primary" onclick="sendChatMessage()" style="background: linear-gradient(135deg, #007bff, #0056b3); border: none; box-shadow: 0 4px 8px rgba(0,123,255,0.3);">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                        <div class="mt-2">
+                            <small class="text-muted">Quick suggestions: 
+                                <button class="btn btn-sm btn-link p-0 text-decoration-none" onclick="sendQuickMessage('manufacturing automation')">Manufacturing</button> |
+                                <button class="btn btn-sm btn-link p-0 text-decoration-none" onclick="sendQuickMessage('office automation')">Office Tasks</button> |
+                                <button class="btn btn-sm btn-link p-0 text-decoration-none" onclick="sendQuickMessage('customer service automation')">Customer Service</button> |
+                                <button class="btn btn-sm btn-link p-0 text-decoration-none" onclick="sendQuickMessage('data processing automation')">Data Processing</button>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Simplified Issue Report Button -->
+<div class="simplified-issue-report" id="simplified-issue-report">
+    <button class="btn btn-outline-danger btn-sm issue-report-btn" onclick="reportPageIssue()" 
+            title="Report an issue with this page">
+        <i class="fas fa-bug me-1"></i>Issue on this page
+    </button>
+</div>
+
+<style>
+.simplified-issue-report {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    z-index: 998;
+}
+
+.issue-report-btn {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border-color: #dc3545;
+    color: #dc3545;
+    background: white;
+    transition: all 0.2s ease;
+}
+
+.issue-report-btn:hover {
+    background: #dc3545;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.issue-options .issue-option {
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.issue-options .issue-option:hover {
+    background-color: #f8f9fa;
+    border-color: #0d6efd;
+}
+
+@media (max-width: 768px) {
+    .simplified-issue-report {
+        bottom: 70px;
+        right: 15px;
+    }
+}
+
+/* Chat styling */
+.typing-dots {
+    display: flex;
+    align-items: center;
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #6c757d;
+    margin: 0 2px;
+    animation: typing-bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+.typing-dots span:nth-child(3) { animation-delay: 0s; }
+
+@keyframes typing-bounce {
+    0%, 80%, 100% { 
+        transform: scale(0);
+        opacity: 0.5;
+    } 40% { 
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.chat-message {
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.automation-idea-card {
+    transition: all 0.2s ease;
+}
+
+.automation-idea-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+/* MoneyMan-style chat styling */
+.chat-message {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border-radius: 12px;
+    animation: fadeInUp 0.3s ease;
+}
+
+.user-message {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    margin-left: 15%;
+    margin-right: 5%;
+    border: 1px solid #0056b3;
+    box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+}
+
+.bot-message {
+    background: linear-gradient(135deg, #2a2a2a, #1e1e1e);
+    color: #e0e0e0;
+    margin-right: 15%;
+    margin-left: 5%;
+    border: 1px solid #444;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #444;
+}
+
+.chat-input-container input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid #444;
+    border-radius: 8px;
+    background: linear-gradient(145deg, #2a2a2a, #1e1e1e);
+    color: #e0e0e0;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+}
+
+.chat-input-container input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 10px rgba(0,123,255,0.3);
+}
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentIdeas = [];
+let isDiscovering = false; // Prevent concurrent discovery requests
+
+async function discoverIdeas() {
+    console.log('discoverIdeas() function called');
+    
+    // Prevent concurrent discovery requests
+    if (isDiscovering) {
+        console.log('Discovery already in progress, ignoring request');
+        RSApp.showMessage('Discovery already in progress, please wait...', 'warning');
+        return;
+    }
+    
+    isDiscovering = true;
+    console.log('Starting discovery process...');
+    const limitPerSource = 10; // Fixed value, no UI filter needed
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const resultsContainer = document.getElementById('discovery-results');
+    const discoverButton = document.getElementById('discover-button');
+    
+    // Clear any existing duplicate spinners
+    loadingSpinner.innerHTML = `
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Discovering automation ideas from multiple sources...</p>
+    `;
+    
+    // Disable discover button and show loading
+    if (discoverButton) {
+        discoverButton.disabled = true;
+        discoverButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Discovering...';
+    }
+    
+    loadingSpinner.style.display = 'block';
+    resultsContainer.style.display = 'none';
+    
+    try {
+        // Add timeout to prevent hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+        
+        const response = await fetch(`/api/v1/automation-ideas/discover?limit_per_source=${limitPerSource}`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        console.log('API Response:', data);
+        
+        if (data.status === 'success') {
+            console.log('Discovery successful, found', data.discovery_summary?.total_ideas_found || 0, 'ideas');
+            currentIdeas = data.all_ideas || [];
+            
+            // Remove hidden class to make results visible
+            resultsContainer.classList.remove('hidden-element');
+            
+            displayDiscoveryResults(data);
+            RSApp.showMessage(`Successfully discovered ${data.discovery_summary?.total_ideas_found || 0} automation ideas!`, 'success');
+        } else {
+            throw new Error('Discovery failed: ' + (data.detail || 'Unknown error'));
+        }
+        
+    } catch (error) {
+        console.error('Error discovering ideas:', error);
+        
+        let errorMessage = 'Failed to discover ideas: ';
+        if (error.name === 'AbortError') {
+            errorMessage += 'Request timed out. Please try again.';
+        } else if (error.message.includes('503')) {
+            errorMessage += 'Service temporarily unavailable. Please try again later.';
+        } else {
+            errorMessage += error.message;
+        }
+        
+        RSApp.showMessage(errorMessage, 'danger');
+        
+        // Show a helpful message in the results area
+        resultsContainer.innerHTML = `
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5>Discovery Service Unavailable</h5>
+                    <p class="text-muted mb-3">The automation ideas discovery service is currently not available. This may be due to:</p>
+                    <ul class="list-unstyled text-start">
+                        <li><i class="fas fa-circle me-2 icon-tiny"></i>Service dependencies not installed</li>
+                        <li><i class="fas fa-circle me-2 icon-tiny"></i>Network connectivity issues</li>
+                        <li><i class="fas fa-circle me-2 icon-tiny"></i>Service temporarily down</li>
+                    </ul>
+                    <button class="btn btn-primary" onclick="discoverIdeas()">
+                        <i class="fas fa-redo me-1"></i>Try Again
+                    </button>
+                </div>
+            </div>
+        `;
+    } finally {
+        // Always reset the state
+        isDiscovering = false;
+        loadingSpinner.style.display = 'none';
+        resultsContainer.classList.remove('hidden-element');
+        resultsContainer.style.display = 'block';
+        
+        // Re-enable discover button
+        if (discoverButton) {
+            discoverButton.disabled = false;
+            discoverButton.innerHTML = '<i class="fas fa-search me-1"></i>Discover Ideas';
+        }
+    }
+}
+
+function displayDiscoveryResults(data) {
+    const summary = data.discovery_summary || {};
+    const topIdeas = data.top_ideas || [];
+    const sourceRankings = data.source_rankings || {};
+    const recommendations = data.recommendations || [];
+    
+    // Update summary cards
+    document.getElementById('total-ideas').textContent = summary.total_ideas_found || 0;
+    document.getElementById('avg-productivity').textContent = (summary.avg_productivity_estimate || 0) + '%';
+    document.getElementById('best-source').textContent = summary.best_source || '-';
+    document.getElementById('discovery-time').textContent = new Date().toLocaleTimeString();
+    document.getElementById('ideas-count').textContent = topIdeas.length;
+    
+    // Display top ideas
+    displayTopIdeas(topIdeas);
+    
+    // Display source rankings
+    displaySourceRankings(sourceRankings);
+    
+    // Display recommendations
+    if (recommendations.length > 0) {
+        displayRecommendations(recommendations);
+        document.getElementById('recommendations-section').style.display = 'block';
+    }
+}
+
+function displayTopIdeas(ideas) {
+    const container = document.getElementById('top-ideas-container');
+    
+    if (ideas.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted"><p>No automation ideas found</p></div>';
+        return;
+    }
+    
+    const ideasHtml = ideas.map((idea, index) => {
+        const difficultyClass = `difficulty-${idea.difficulty}`;
+        const tagsHtml = idea.tags ? idea.tags.map(tag => `<span class="tag">${tag}</span>`).join('') : '';
+        
+        return `
+            <div class="idea-card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-1 flex-grow-1 me-2">${idea.title}</h6>
+                    <span class="priority-score text-primary">${idea.priority_score}</span>
+                </div>
+                
+                <p class="text-muted small mb-2">${idea.description}</p>
+                
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <span class="productivity-badge bg-success text-white">
+                        <i class="fas fa-chart-line me-1"></i>${idea.productivity_estimate}% productivity
+                    </span>
+                    <span class="badge ${difficultyClass}">${idea.difficulty}</span>
+                    <span class="category-badge">${idea.category}</span>
+                    <small class="text-muted">${idea.implementation_time_days} days</small>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="small">
+                        ${tagsHtml}
+                    </div>
+                    <div class="small text-muted">
+                        <i class="fas fa-thumbs-up me-1"></i>${idea.upvotes}
+                        <span class="ms-2">${idea.source}</span>
+                    </div>
+                </div>
+                
+                <div class="mt-2">
+                    <a href="${idea.url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-external-link-alt me-1"></i>View Source
+                    </a>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = ideasHtml;
+}
+
+function displaySourceRankings(rankings) {
+    const container = document.getElementById('source-rankings-container');
+    
+    const rankingsArray = Object.entries(rankings).map(([name, data]) => ({name, ...data}));
+    rankingsArray.sort((a, b) => a.rank - b.rank);
+    
+    if (rankingsArray.length === 0) {
+        container.innerHTML = '<p class="text-muted">No source rankings available</p>';
+        return;
+    }
+    
+    const rankingsHtml = rankingsArray.map(source => `
+        <div class="source-rank">
+            <div class="d-flex justify-content-between align-items-center">
+                <strong>${source.rank}. ${source.name}</strong>
+                <span class="badge bg-primary">${source.quality_score}</span>
+            </div>
+            <small class="text-muted">${source.total_ideas} ideas, ${source.avg_productivity}% avg productivity</small>
+        </div>
+    `).join('');
+    
+    container.innerHTML = rankingsHtml;
+}
+
+function displayRecommendations(recommendations) {
+    const container = document.getElementById('recommendations-container');
+    
+    const recommendationsHtml = recommendations.map(rec => `
+        <div class="alert alert-info">
+            <i class="fas fa-lightbulb me-2"></i>${rec}
+        </div>
+    `).join('');
+    
+    container.innerHTML = recommendationsHtml;
+}
+
+async function loadCategories() {
+    try {
+        const response = await fetch('/api/v1/automation-ideas/categories');
+        const data = await response.json();
+        
+        const container = document.getElementById('categories-container');
+        const categories = data.automation_categories || {};
+        
+        const categoriesHtml = Object.entries(categories).map(([name, info]) => `
+            <div class="mb-2">
+                <span class="badge bg-secondary">${name}</span>
+                <small class="text-muted d-block">${info.typical_productivity}</small>
+            </div>
+        `).join('');
+        
+        container.innerHTML = categoriesHtml;
+        
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        RSApp.showMessage('Failed to load categories', 'danger');
+    }
+}
+
+function refreshCategories() {
+    loadCategories();
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    // Immediately hide any loading spinners that might be stuck
+    const loadingSpinner = document.getElementById('loading-spinner');
+    if (loadingSpinner) {
+        loadingSpinner.style.display = 'none';
+    }
+    
+    // Show discovery results area
+    const resultsContainer = document.getElementById('discovery-results');
+    if (resultsContainer) {
+        resultsContainer.classList.remove('hidden-element');
+        resultsContainer.style.display = 'block';
+    }
+    
+    // Reset any button states that might be stuck
+    const discoverButton = document.querySelector('button[onclick*="discoverIdeas"]');
+    if (discoverButton) {
+        discoverButton.disabled = false;
+        discoverButton.innerHTML = '<i class="fas fa-search me-1"></i>Discover Ideas';
+    }
+    
+    // Load categories on page load
+    loadCategories();
+    
+    // Handle collapse icon rotation
+    const collapseElement = document.getElementById('topIdeasCollapse');
+    const collapseButton = document.querySelector('[data-bs-target="#topIdeasCollapse"]');
+    const collapseIcon = collapseButton?.querySelector('.collapse-icon');
+    
+    if (collapseElement && collapseIcon) {
+        collapseElement.addEventListener('show.bs.collapse', function() {
+            collapseIcon.classList.remove('collapsed');
+        });
+        
+        collapseElement.addEventListener('hide.bs.collapse', function() {
+            collapseIcon.classList.add('collapsed');
+        });
+        
+        // Set initial state
+        if (!collapseElement.classList.contains('show')) {
+            collapseIcon.classList.add('collapsed');
+        }
+    }
+});
+
+// Emergency function to stop all loading spinners
+function stopAllLoadingSpinners() {
+    const loadingSpinner = document.getElementById('loading-spinner');
+    if (loadingSpinner) {
+        loadingSpinner.style.display = 'none';
+    }
+    
+    const resultsContainer = document.getElementById('discovery-results');
+    if (resultsContainer) {
+        resultsContainer.classList.remove('hidden-element');
+        resultsContainer.style.display = 'block';
+    }
+    
+    const discoverButton = document.querySelector('button[onclick*="discoverIdeas"]');
+    if (discoverButton) {
+        discoverButton.disabled = false;
+        discoverButton.innerHTML = '<i class="fas fa-search me-1"></i>Discover Ideas';
+    }
+    
+    isDiscovering = false;
+    
+    console.log('All loading spinners stopped');
+}
+
+// Simplified issue reporting function
+async function reportPageIssue() {
+    console.log('reportPageIssue() called for page: automation_ideas');
+    
+    // Show loading state
+    RSApp.showGlobalLoading({
+        title: 'Scanning Page...',
+        message: 'Checking for common issues on this page'
+    });
+    
+    try {
+        // First, perform an automated scan of this page
+        const response = await fetch('/api/v1/ui-monitoring/scan-page', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                page: 'automation_ideas',
+                url: window.location.href,
+                auto_scan: true
+            })
+        });
+        
+        const scanResults = await response.json();
+        console.log('Auto-scan results:', scanResults);
+        
+        RSApp.hideGlobalLoading();
+        
+        // Check if we found any issues
+        if (scanResults.issues && scanResults.issues.length > 0) {
+            // Show found issues and ask user which one they're experiencing
+            showIssueSelectionModal(scanResults.issues);
+        } else {
+            // No issues found, ask user to describe their issue
+            showIssueDescriptionModal();
+        }
+        
+    } catch (error) {
+        console.error('Error scanning page:', error);
+        RSApp.hideGlobalLoading();
+        // Fallback to asking user to describe the issue
+        showIssueDescriptionModal();
+    }
+}
+
+function showIssueSelectionModal(issues) {
+    const issuesHtml = issues.map(issue => `
+        <div class="issue-option" onclick="selectIssue('${issue.id}', '${issue.description}')">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle text-${issue.severity === 'critical' ? 'danger' : issue.severity === 'high' ? 'warning' : 'info'} me-2"></i>
+                <div>
+                    <div class="fw-medium">${issue.description}</div>
+                    <small class="text-muted">${issue.category.replace('_', ' ')}</small>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    RSApp.showModal({
+        title: 'Is this your issue?',
+        body: `
+            <p class="mb-3">We found some potential issues on this page. Is any of these what you're experiencing?</p>
+            <div class="issue-options">
+                ${issuesHtml}
+                <div class="issue-option" onclick="showIssueDescriptionModal()">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-plus text-secondary me-2"></i>
+                        <div>
+                            <div class="fw-medium">Something else</div>
+                            <small class="text-muted">Describe a different issue</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `,
+        size: 'md'
+    });
+}
+
+function selectIssue(issueId, description) {
+    RSApp.hideModal();
+    submitIssueReport({
+        page: 'automation_ideas',
+        category: 'detected_issue',
+        severity: 'medium',
+        description: `Auto-detected issue: ${description}`,
+        issue_id: issueId
+    });
+}
+
+function showIssueDescriptionModal() {
+    RSApp.showModal({
+        title: 'What issue are you experiencing?',
+        body: `
+            <form id="simple-issue-form">
+                <div class="mb-3">
+                    <label for="issue-description" class="form-label">Please describe the issue:</label>
+                    <textarea class="form-control" id="issue-description" rows="3" 
+                             placeholder="What went wrong? What were you trying to do?" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="issue-severity" class="form-label">How serious is this?</label>
+                    <select class="form-select" id="issue-severity" required>
+                        <option value="">Select...</option>
+                        <option value="low">Minor issue</option>
+                        <option value="medium">Moderate problem</option>
+                        <option value="high">Major problem</option>
+                        <option value="critical">Can't complete my task</option>
+                    </select>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i>Report Issue
+                    </button>
+                </div>
+            </form>
+        `,
+        size: 'md'
+    });
+    
+    // Handle form submission
+    document.getElementById('simple-issue-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const description = document.getElementById('issue-description').value;
+        const severity = document.getElementById('issue-severity').value;
+        
+        if (description && severity) {
+            RSApp.hideModal();
+            submitIssueReport({
+                page: 'automation_ideas',
+                category: 'user_reported',
+                severity: severity,
+                description: description
+            });
+        }
+    });
+}
+
+async function submitIssueReport(reportData) {
+    try {
+        RSApp.showGlobalLoading({
+            title: 'Submitting Report...',
+            message: 'Sending your issue report to our audit system'
+        });
+        
+        const response = await fetch('/api/v1/ui-monitoring/report-issue', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(reportData)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            RSApp.hideGlobalLoading();
+            RSApp.showMessage('Thank you! Your issue report has been submitted successfully.', 'success');
+        } else {
+            throw new Error('Failed to submit report');
+        }
+    } catch (error) {
+        console.error('Error submitting report:', error);
+        RSApp.hideGlobalLoading();
+        RSApp.showMessage('Failed to submit report. Please try again.', 'danger');
+    }
+}
+
+// Chat functionality for targeted automation ideas
+async function sendChatMessage() {
+    const chatInput = document.getElementById('chat-input');
+    const message = chatInput.value.trim();
+    
+    if (!message) return;
+    
+    // Add user message to chat
+    addChatMessage(message, 'user');
+    
+    // Clear input
+    chatInput.value = '';
+    
+    // Add typing indicator
+    const typingIndicator = addTypingIndicator();
+    
+    try {
+        // Send request to AI automation ideas API
+        const response = await fetch('/api/v1/automation-ideas/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: message,
+                context: 'automation_assistant'
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Remove typing indicator
+            typingIndicator.remove();
+            
+            // Add bot response
+            if (data.response) {
+                addChatMessage(data.response, 'bot');
+            }
+            
+            // Display specific automation ideas if provided
+            if (data.automation_ideas && data.automation_ideas.length > 0) {
+                displayChatAutomationIdeas(data.automation_ideas);
+            }
+        } else {
+            typingIndicator.remove();
+            addChatMessage("I'm sorry, I'm having trouble connecting right now. Please try again later.", 'bot');
+        }
+    } catch (error) {
+        console.error('Chat error:', error);
+        typingIndicator.remove();
+        addChatMessage("I'm sorry, I encountered an error. Let me provide some general automation ideas instead.", 'bot');
+        
+        // Provide fallback automation suggestions
+        provideGeneralAutomationIdeas(message);
+    }
+}
+
+function sendQuickMessage(category) {
+    const chatInput = document.getElementById('chat-input');
+    chatInput.value = `Show me ${category} ideas`;
+    sendChatMessage();
+}
+
+function addChatMessage(message, sender) {
+    const chatMessages = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${sender}-message mb-3`;
+    
+    const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    
+    if (sender === 'user') {
+        messageDiv.innerHTML = `
+            <div class="d-flex justify-content-end">
+                <div class="message-content">
+                    <div class="message-bubble bg-primary text-white p-3 rounded shadow-sm" style="max-width: 80%;">
+                        ${message}
+                    </div>
+                    <small class="text-muted d-block text-end">${timestamp}</small>
+                </div>
+                <div class="avatar bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center ms-2" style="width: 32px; height: 32px; font-size: 14px;">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+        `;
+    } else {
+        messageDiv.innerHTML = `
+            <div class="d-flex">
+                <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 14px;">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-bubble bg-white p-3 rounded shadow-sm" style="max-width: 80%;">
+                        ${message}
+                    </div>
+                    <small class="text-muted">${timestamp}</small>
+                </div>
+            </div>
+        `;
+    }
+    
+    chatMessages.appendChild(messageDiv);
+    
+    // Scroll to bottom
+    const chatContainer = document.getElementById('chat-container');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    return messageDiv;
+}
+
+function addTypingIndicator() {
+    const chatMessages = document.getElementById('chat-messages');
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'chat-message bot-message typing-indicator mb-3';
+    typingDiv.innerHTML = `
+        <div class="d-flex">
+            <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 14px;">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="message-content">
+                <div class="message-bubble bg-white p-3 rounded shadow-sm">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    chatMessages.appendChild(typingDiv);
+    
+    // Scroll to bottom
+    const chatContainer = document.getElementById('chat-container');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    return typingDiv;
+}
+
+function displayChatAutomationIdeas(ideas) {
+    if (!ideas || ideas.length === 0) return;
+    
+    const ideasHtml = ideas.map(idea => `
+        <div class="automation-idea-card border p-3 rounded mb-2" style="background-color: #f8f9fa;">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="mb-0">${idea.title}</h6>
+                <span class="badge bg-success">${idea.category || 'General'}</span>
+            </div>
+            <p class="small mb-2">${idea.description}</p>
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>${idea.implementation_time || 'Variable'} |
+                    <i class="fas fa-chart-line ms-2 me-1"></i>ROI: ${idea.roi || 'Medium'}
+                </small>
+                ${idea.url ? `<a href="${idea.url}" target="_blank" class="btn btn-sm btn-outline-primary">Learn More</a>` : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    const message = `Here are some specific automation ideas for you:\n\n${ideasHtml}`;
+    addChatMessage(message, 'bot');
+}
+
+function provideGeneralAutomationIdeas(userMessage) {
+    const lowerMessage = userMessage.toLowerCase();
+    let ideas = [];
+    
+    if (lowerMessage.includes('manufacturing') || lowerMessage.includes('production')) {
+        ideas = [
+            {
+                title: "Automated Quality Control",
+                description: "Use computer vision to inspect products and detect defects automatically",
+                category: "Manufacturing",
+                roi: "High"
+            },
+            {
+                title: "Inventory Management System",
+                description: "Automated tracking and reordering of raw materials and finished goods",
+                category: "Manufacturing", 
+                roi: "Medium"
+            }
+        ];
+    } else if (lowerMessage.includes('office') || lowerMessage.includes('admin')) {
+        ideas = [
+            {
+                title: "Document Processing",
+                description: "Automatically extract data from invoices, receipts, and forms",
+                category: "Office",
+                roi: "High"
+            },
+            {
+                title: "Email Automation",
+                description: "Auto-sort, respond to, and forward emails based on content and sender",
+                category: "Office",
+                roi: "Medium"
+            }
+        ];
+    } else {
+        ideas = [
+            {
+                title: "Process Documentation",
+                description: "Automatically capture and document repetitive business processes",
+                category: "General",
+                roi: "Medium"
+            },
+            {
+                title: "Data Entry Automation",
+                description: "Extract and input data from various sources into your systems",
+                category: "General",
+                roi: "High"
+            }
+        ];
+    }
+    
+    displayChatAutomationIdeas(ideas);
+}
+
+// Make functions available globally for debugging
+window.stopAllLoadingSpinners = stopAllLoadingSpinners;
+window.discoverIdeas = discoverIdeas;
+window.reportPageIssue = reportPageIssue;
+window.sendChatMessage = sendChatMessage;
+window.sendQuickMessage = sendQuickMessage;
+</script>
+{% endblock %}

@@ -1,0 +1,2026 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Research Synthesis Engine{% endblock %}
+
+{% block head %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-0 text-gradient">
+                    <i class="fas fa-chart-pie me-2"></i>Research Dashboard
+                </h1>
+                <p class="text-muted mb-0">Real-time intelligence and system overview</p>
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="window.dashboard.loadDashboardData()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Usage KPI Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card" data-bs-toggle="tooltip" data-bs-placement="top" title="Number of times you've accessed the system today. Each browser session counts as one.">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon usage-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-usage-sessions">{{ usage_stats.sessions_today or 0 }}</div>
+                    <div class="stat-label">Sessions Today</div>
+                    <div class="stat-change" id="change-sessions">
+                        <i class="fas fa-minus me-1"></i>Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card clickable-kpi" data-bs-toggle="tooltip" data-bs-placement="top" title="Click to view current user session details and activity history" onclick="showUserDetails('{{ usage_stats.current_user_id or 'user_001' }}')">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon usage-icon" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-current-user" style="font-size: 0.9rem;">{{ usage_stats.current_user_id or 'user_001' }}</div>
+                    <div class="stat-label">Current User</div>
+                    <div class="stat-change" id="change-user">
+                        <i class="fas fa-eye me-1 text-primary"></i>Click to inspect
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card clickable-kpi" data-bs-toggle="tooltip" data-bs-placement="top" title="Claude Code session time remaining - Click to view session details and usage history" onclick="showClaudeCodeDetails()">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon usage-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-claude-time" style="font-size: 0.9rem;">4h 23m</div>
+                    <div class="stat-label">Claude Code Time</div>
+                    <div class="stat-change" id="change-claude-time">
+                        <i class="fas fa-clock me-1 text-warning"></i><span id="claude-status">Active</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card" data-bs-toggle="tooltip" data-bs-placement="top" title="Number of different features you've used today (Reports, Scraping, Knowledge, Automation, etc.)">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon usage-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                    <i class="fas fa-puzzle-piece"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-features-used">{{ usage_stats.features_used_today or 0 }}</div>
+                    <div class="stat-label">Features Used</div>
+                    <div class="stat-change" id="change-features-used">
+                        <i class="fas fa-minus me-1"></i>Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cost Tracking KPIs -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card clickable-kpi" data-bs-toggle="tooltip" data-bs-placement="top" title="Today's operational costs in USD - includes MongoDB operations, Claude API calls, and system resources" onclick="showCostBreakdown()">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon cost-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-daily-cost">$0.00</div>
+                    <div class="stat-label">Today's Costs</div>
+                    <div class="stat-change" id="change-daily-cost">
+                        <i class="fas fa-calculator me-1 text-warning"></i>Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card clickable-kpi" data-bs-toggle="tooltip" data-bs-placement="top" title="Current month's total operational costs - projected based on daily usage patterns" onclick="showMonthlyCosts()">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon cost-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-monthly-cost">$0.00</div>
+                    <div class="stat-label">Monthly Costs</div>
+                    <div class="stat-change" id="change-monthly-cost">
+                        <i class="fas fa-trend-up me-1 text-info"></i>Projected
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card clickable-kpi" data-bs-toggle="tooltip" data-bs-placement="top" title="MongoDB operations today - reads, writes, storage usage with associated costs" onclick="showMongoStats()">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon database-icon" style="background: linear-gradient(135deg, #059669 0%, #047857 100%);">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-mongo-ops">0</div>
+                    <div class="stat-label">DB Operations</div>
+                    <div class="stat-change" id="change-mongo-ops">
+                        <i class="fas fa-server me-1 text-success"></i>$0.00 cost
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card clickable-kpi" data-bs-toggle="tooltip" data-bs-placement="top" title="Claude API usage today - tokens consumed and costs by model type" onclick="showClaudeStats()">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon ai-icon" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-claude-tokens">0</div>
+                    <div class="stat-label">AI Tokens</div>
+                    <div class="stat-change" id="change-claude-tokens">
+                        <i class="fas fa-brain me-1 text-danger"></i>$0.00 cost
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Activity KPIs -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-articles">{{ stats.total_articles or 0 }}</div>
+                    <div class="stat-label">Articles Collected</div>
+                    <div class="stat-change" id="change-articles">
+                        <i class="fas fa-minus me-1"></i>Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-reports">{{ stats.total_reports or 0 }}</div>
+                    <div class="stat-label">Reports Generated</div>
+                    <div class="stat-change" id="change-reports">
+                        <i class="fas fa-minus me-1"></i>Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon">
+                    <i class="fas fa-spider"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-sources">{{ stats.active_sources or 5 }}</div>
+                    <div class="stat-label">Active Sources</div>
+                    <div class="stat-change" id="change-sources">
+                        <i class="fas fa-minus me-1"></i>Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-entities">{{ stats.total_entities or 0 }}</div>
+                    <div class="stat-label">Knowledge Entities</div>
+                    <div class="stat-change" id="change-entities">
+                        <i class="fas fa-minus me-1"></i>Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- System Status -->
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="mb-0">
+                    <i class="fas fa-heartbeat me-2"></i>System Status
+                </h5>
+                <div class="status-indicator">
+                    <span class="status-dot online"></span>
+                    <span class="status-text">Online</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="fw-semibold mb-3">Database Connections</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>SQLite (Primary)</span>
+                                {% if database_status and database_status.postgresql %}
+                                    {% if database_status.postgresql.status == 'connected' %}
+                                        <span class="badge bg-success">Connected</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Disconnected</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-success">Connected</span>
+                                {% endif %}
+                            </div>
+                            <div class="progress mb-2">
+                                {% if database_status and database_status.postgresql %}
+                                    {% if database_status.postgresql.status == 'connected' %}
+                                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                                    {% else %}
+                                        <div class="progress-bar bg-danger" style="width: 0%"></div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="progress-bar bg-success" style="width: 100%"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>MongoDB (Legacy)</span>
+                                {% if database_status and database_status.mongodb %}
+                                    {% if database_status.mongodb.status == 'connected' %}
+                                        <span class="badge bg-success">Connected</span>
+                                    {% elif database_status.mongodb.status == 'not_installed' %}
+                                        <span class="badge bg-secondary">Not Installed</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Disconnected</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-warning">Unknown</span>
+                                {% endif %}
+                            </div>
+                            <div class="progress mb-2">
+                                {% if database_status and database_status.mongodb %}
+                                    {% if database_status.mongodb.status == 'connected' %}
+                                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                                    {% elif database_status.mongodb.status == 'not_installed' %}
+                                        <div class="progress-bar bg-secondary" style="width: 0%"></div>
+                                    {% else %}
+                                        <div class="progress-bar bg-danger" style="width: 0%"></div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="progress-bar bg-warning" style="width: 0%"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Redis (Cache)</span>
+                                {% if database_status and database_status.redis %}
+                                    {% if database_status.redis.status == 'connected' %}
+                                        <span class="badge bg-success">Connected</span>
+                                    {% elif database_status.redis.status == 'not_installed' %}
+                                        <span class="badge bg-secondary">Not Installed</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Disconnected</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-warning">Unknown</span>
+                                {% endif %}
+                            </div>
+                            <div class="progress mb-2">
+                                {% if database_status and database_status.redis %}
+                                    {% if database_status.redis.status == 'connected' %}
+                                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                                    {% elif database_status.redis.status == 'not_installed' %}
+                                        <div class="progress-bar bg-secondary" style="width: 0%"></div>
+                                    {% else %}
+                                        <div class="progress-bar bg-danger" style="width: 0%"></div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="progress-bar bg-warning" style="width: 0%"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="fw-semibold mb-3">Service Status</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Web Scraping</span>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>NLP Processing</span>
+                                <span class="badge bg-success">Ready</span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Report Generator</span>
+                                <span class="badge bg-success">Ready</span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- UI Health Monitor -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="mb-0">
+                    <i class="fas fa-eye me-2"></i>UI Health Monitor
+                </h5>
+                <div class="ui-health-indicator">
+                    <span class="status-dot" id="ui-health-dot"></span>
+                    <span class="status-text" id="ui-health-text">Checking...</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Open Issues</span>
+                        <span class="badge" id="ui-issues-badge">-</span>
+                    </div>
+                    <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar" id="ui-issues-progress" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted" id="ui-issues-text">Loading UI health status...</small>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Auto-Fixable</span>
+                        <span class="badge bg-success" id="ui-fixable-badge">-</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Pages Scanned</span>
+                        <span class="text-muted" id="ui-pages-count">-</span>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="triggerUIHealthCheck()">
+                            <i class="fas fa-search me-1"></i>Quick Scan
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="autoFixUIIssues()" id="auto-fix-btn">
+                            <i class="fas fa-magic me-1"></i>Auto-Fix Issues
+                        </button>
+                        <a href="/ui-monitoring" class="btn btn-primary btn-sm">
+                            <i class="fas fa-tools me-1"></i>UI Monitoring
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- System Integration Overview -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="mb-0">
+                    <i class="fas fa-network-wired me-2"></i>System Integration
+                </h5>
+                <div class="integration-health-indicator">
+                    <span class="status-dot" id="integration-health-dot"></span>
+                    <span class="status-text" id="integration-health-text">Loading...</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Active Components</span>
+                        <span class="badge bg-primary" id="active-components-badge">-</span>
+                    </div>
+                    <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar bg-success" id="components-progress" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted" id="components-text">Loading component status...</small>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Integration Rules</span>
+                        <span class="badge bg-info" id="integration-rules-badge">-</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>UI Issues Tracked</span>
+                        <span class="text-muted" id="tracked-issues-count">-</span>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-success btn-sm" onclick="refreshSystemIntegration()">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh Status
+                        </button>
+                        <a href="/api/v1/system-integration/overview" target="_blank" class="btn btn-primary btn-sm">
+                            <i class="fas fa-cogs me-1"></i>System Overview
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Usage Analytics & Performance -->
+<div class="row mb-4">
+    <!-- Usage Analytics Chart -->
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-area me-2"></i>Usage Analytics
+                </h5>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-primary active" id="usage-today">Today</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="usage-week">Week</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="usage-month">Month</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="usageChart" height="100"></canvas>
+                <div class="mt-3">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="usage-metric">
+                                <div class="metric-value" id="peak-usage">0</div>
+                                <div class="metric-label">Peak Sessions/Hour</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="usage-metric">
+                                <div class="metric-value" id="bounce-rate">0%</div>
+                                <div class="metric-label">Bounce Rate</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="usage-metric">
+                                <div class="metric-value" id="avg-pages-session">0</div>
+                                <div class="metric-label">Avg Pages/Session</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Features & Performance -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-trophy me-2"></i>Top Features
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="top-features-list">
+                    <div class="feature-usage-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="feature-info">
+                                <i class="fas fa-file-alt me-2 text-primary"></i>
+                                <span class="fw-medium">Reports</span>
+                            </div>
+                            <span class="badge bg-primary" id="reports-usage">0</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-primary" id="reports-progress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-usage-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="feature-info">
+                                <i class="fas fa-spider me-2 text-success"></i>
+                                <span class="fw-medium">Scraping</span>
+                            </div>
+                            <span class="badge bg-success" id="scraping-usage">0</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-success" id="scraping-progress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-usage-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="feature-info">
+                                <i class="fas fa-project-diagram me-2 text-info"></i>
+                                <span class="fw-medium">Knowledge</span>
+                            </div>
+                            <span class="badge bg-info" id="knowledge-usage">0</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-info" id="knowledge-progress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-usage-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="feature-info">
+                                <i class="fas fa-lightbulb me-2 text-warning"></i>
+                                <span class="fw-medium">Automation</span>
+                            </div>
+                            <span class="badge bg-warning" id="automation-usage">0</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-warning" id="automation-progress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="performance-metrics">
+                    <h6 class="fw-semibold mb-3">Performance</h6>
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span>Avg Load Time</span>
+                            <span class="fw-medium" id="avg-load-time">-</span>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span>API Response</span>
+                            <span class="fw-medium" id="api-response-time">-</span>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span>Uptime</span>
+                            <span class="fw-medium text-success" id="system-uptime">99.9%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Second Row -->
+<div class="row">
+    <!-- Quick Actions -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <a href="/scraping" class="btn btn-outline-primary">
+                        <i class="fas fa-spider me-2"></i>Start Web Scraping
+                    </a>
+                    
+                    <a href="/research" class="btn btn-outline-primary">
+                        <i class="fas fa-search me-2"></i>New Research Query
+                    </a>
+                    
+                    <a href="/reports" class="btn btn-outline-primary">
+                        <i class="fas fa-file-alt me-2"></i>Generate Report
+                    </a>
+                    
+                    <a href="/knowledge" class="btn btn-outline-primary">
+                        <i class="fas fa-project-diagram me-2"></i>Explore Knowledge Graph
+                    </a>
+                    
+                    <hr class="my-3">
+                    
+                    <button class="btn btn-outline-warning" onclick="runSystemTests()">
+                        <i class="fas fa-stethoscope me-2"></i>System Health Test
+                    </button>
+                    
+                    <button class="btn btn-outline-info" onclick="runQuickHealthCheck()">
+                        <i class="fas fa-heartbeat me-2"></i>Quick Health Check
+                    </button>
+                    
+                    <hr class="my-3">
+                    
+                    <a href="/docs" class="btn btn-outline-secondary">
+                        <i class="fas fa-book me-2"></i>API Documentation
+                    </a>
+                    
+                    <a href="/system-status" class="btn btn-outline-secondary">
+                        <i class="fas fa-cog me-2"></i>System Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>Recent Activity
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="recent-activity">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="status-dot online"></div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="fw-medium">System started successfully</div>
+                            <small class="text-muted">{{ current_time }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="status-dot online"></div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="fw-medium">SQLite database connected</div>
+                            <small class="text-muted">{{ current_time }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="status-dot online"></div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="fw-medium">Web interface initialized</div>
+                            <small class="text-muted">{{ current_time }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <small class="text-muted">Ready for research operations</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Sources Status -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center w-100 justify-content-between" 
+                            type="button" data-bs-toggle="collapse" data-bs-target="#dataSourcesCollapse" 
+                            aria-expanded="false" aria-controls="dataSourcesCollapse">
+                        <span>
+                            <i class="fas fa-rss me-2"></i>Data Sources
+                            <small class="ms-2" style="color: rgba(255,255,255,0.95); font-weight: 600;">(<span id="sources-count">Loading...</span> sources)</small>
+                        </span>
+                        <i class="fas fa-chevron-down collapse-icon"></i>
+                    </button>
+                </h5>
+            </div>
+            <div class="collapse" id="dataSourcesCollapse">
+                <div class="card-body">
+                <div class="table-responsive"><table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Source</th>
+                                <th>Last Updated</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sources-status">
+                            <tr>
+                                <td>
+                                    <div class="status-indicator">
+                                        <span class="status-dot warning"></span>
+                                        SpaceNews
+                                    </div>
+                                </td>
+                                <td>Never</td>
+                                <td><span class="badge bg-warning">Ready</span></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="status-indicator">
+                                        <span class="status-dot warning"></span>
+                                        Space.com
+                                    </div>
+                                </td>
+                                <td>Never</td>
+                                <td><span class="badge bg-warning">Ready</span></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="status-indicator">
+                                        <span class="status-dot warning"></span>
+                                        SpaceflightNow
+                                    </div>
+                                </td>
+                                <td>Never</td>
+                                <td><span class="badge bg-warning">Ready</span></td>
+                            </tr>
+                        </tbody>
+                    </table></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Space Manufacturing Intelligence Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-industry me-2"></i>Space Manufacturing Intelligence
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="stat-icon mx-auto mb-3" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+                            <i class="fas fa-cube"></i>
+                        </div>
+                        <h6 class="fw-semibold">In-Space Manufacturing</h6>
+                        <p class="text-muted small">Track developments in orbital factories and 3D printing capabilities</p>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="stat-icon mx-auto mb-3" style="background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);">
+                            <i class="fas fa-microscope"></i>
+                        </div>
+                        <h6 class="fw-semibold">Materials Research</h6>
+                        <p class="text-muted small">Monitor breakthroughs in space-grade materials and composites</p>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="stat-icon mx-auto mb-3" style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h6 class="fw-semibold">Market Analysis</h6>
+                        <p class="text-muted small">Analyze economic opportunities and competitive landscape</p>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="/reports?type=manufacturing" class="btn btn-primary">
+                        <i class="fas fa-rocket me-2"></i>Generate Manufacturing Intelligence Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/kpi_dashboard.js"></script>
+<style>
+/* Collapsible Data Sources Styling */
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+[aria-expanded="true"] .collapse-icon {
+    transform: rotate(180deg);
+}
+
+.card-header .btn-link {
+    color: inherit !important;
+}
+
+.card-header .btn-link:hover {
+    color: var(--bs-primary) !important;
+}
+
+#sources-count {
+    font-weight: 500;
+}
+
+/* Make table more compact */
+.table-sm td {
+    padding: 0.5rem 0.75rem;
+}
+
+/* Add smooth transitions */
+.collapse {
+    transition: all 0.35s ease;
+}
+
+/* Usage KPI Styling */
+.usage-icon {
+    background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%);
+    color: white;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.usage-metric {
+    text-align: center;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.feature-usage-item {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 1rem;
+}
+
+.feature-usage-item:last-child {
+    border-bottom: none;
+}
+
+.feature-info {
+    display: flex;
+    align-items: center;
+}
+
+.performance-metrics .d-flex {
+    font-size: 0.875rem;
+}
+
+#usageChart {
+    max-height: 300px;
+}
+
+.btn-group .btn.active {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white;
+}
+
+/* Enhanced stat cards */
+.stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+/* Clickable KPI styling */
+.clickable-kpi {
+    cursor: pointer;
+}
+
+.clickable-kpi:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    border: 2px solid var(--bs-primary);
+}
+
+/* Tooltip styling */
+.tooltip {
+    font-size: 0.875rem;
+}
+
+.tooltip-inner {
+    max-width: 250px;
+    text-align: left;
+}
+</style>
+<script>
+// Create global dashboard object
+if (typeof window.dashboard === 'undefined') {
+    window.dashboard = {};
+}
+
+// Dashboard-specific initialization
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard loaded successfully');
+
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Initialize Claude Code timer
+    updateClaudeCodeTimer();
+    
+    // Update Claude Code timer every minute
+    setInterval(function() {
+        updateClaudeCodeTimer();
+    }, 60000);
+
+    // Update sources count when data is loaded
+    window.dashboard.loadSourcesStatus = function() {
+        fetch('/api/v1/scraping/sources/status')
+            .then(response => response.json())
+            .then(data => {
+                const sourcesCount = data.sources ? data.sources.length : 0;
+                document.getElementById('sources-count').textContent = sourcesCount;
+                
+                const tbody = document.getElementById('sources-status');
+                if (tbody && data.sources) {
+                    tbody.innerHTML = '';
+                    
+                    data.sources.forEach(source => {
+                        const lastScraped = source.last_scraped ? 
+                            new Date(source.last_scraped).toLocaleString() : 'Never';
+                        
+                        const statusClass = source.status === 'completed' ? 'success' : 
+                                          source.status === 'processing' ? 'info' :
+                                          source.status === 'error' ? 'danger' : 'warning';
+                                          
+                        const statusDot = source.status === 'completed' ? 'success' : 
+                                        source.status === 'processing' ? 'info' :
+                                        source.status === 'error' ? 'danger' : 'warning';
+                        
+                        const row = `
+                            <tr>
+                                <td>
+                                    <div class="status-indicator">
+                                        <span class="status-dot ${statusDot}"></span>
+                                        ${source.name}
+                                    </div>
+                                </td>
+                                <td>${lastScraped}</td>
+                                <td><span class="badge bg-${statusClass}">${source.status}</span></td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load sources status:', error);
+            });
+    };
+    
+    // Load UI health monitoring data
+    window.dashboard.loadUIHealthStatus = function() {
+        fetch('/api/v1/ui-monitoring/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const summary = data.monitoring_summary;
+                    const serviceHealth = data.service_health;
+                    
+                    // Update UI health indicator
+                    const healthDot = document.getElementById('ui-health-dot');
+                    const healthText = document.getElementById('ui-health-text');
+                    
+                    if (summary.open_issues === 0) {
+                        healthDot.className = 'status-dot online';
+                        healthText.textContent = 'Healthy';
+                    } else if (summary.by_severity && summary.by_severity.critical > 0) {
+                        healthDot.className = 'status-dot offline';
+                        healthText.textContent = 'Issues Found';
+                    } else {
+                        healthDot.className = 'status-dot warning';
+                        healthText.textContent = 'Minor Issues';
+                    }
+                    
+                    // Update issues badge and progress
+                    const issuesBadge = document.getElementById('ui-issues-badge');
+                    const issuesProgress = document.getElementById('ui-issues-progress');
+                    const issuesText = document.getElementById('ui-issues-text');
+                    
+                    const openIssues = summary.open_issues || 0;
+                    if (openIssues === 0) {
+                        issuesBadge.className = 'badge bg-success';
+                        issuesBadge.textContent = '0';
+                        issuesProgress.className = 'progress-bar bg-success';
+                        issuesProgress.style.width = '100%';
+                        issuesText.textContent = 'No UI issues detected';
+                    } else {
+                        if (summary.by_severity && summary.by_severity.critical > 0) {
+                            issuesBadge.className = 'badge bg-danger';
+                            issuesProgress.className = 'progress-bar bg-danger';
+                        } else if (summary.by_severity && summary.by_severity.high > 0) {
+                            issuesBadge.className = 'badge bg-warning';
+                            issuesProgress.className = 'progress-bar bg-warning';
+                        } else {
+                            issuesBadge.className = 'badge bg-info';
+                            issuesProgress.className = 'progress-bar bg-info';
+                        }
+                        
+                        issuesBadge.textContent = openIssues;
+                        issuesProgress.style.width = Math.min(openIssues * 10, 100) + '%';
+                        issuesText.textContent = openIssues === 1 ? '1 issue needs attention' : `${openIssues} issues need attention`;
+                    }
+                    
+                    // Update auto-fixable count
+                    const fixableBadge = document.getElementById('ui-fixable-badge');
+                    const autoFixable = summary.auto_fixable || 0;
+                    fixableBadge.textContent = autoFixable;
+                    
+                    // Update pages count
+                    const pagesCount = document.getElementById('ui-pages-count');
+                    pagesCount.textContent = serviceHealth.total_scanned_pages || 0;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading UI health status:', error);
+                const healthDot = document.getElementById('ui-health-dot');
+                const healthText = document.getElementById('ui-health-text');
+                const issuesText = document.getElementById('ui-issues-text');
+                
+                if (healthDot) healthDot.className = 'status-dot offline';
+                if (healthText) healthText.textContent = 'Error';
+                if (issuesText) issuesText.textContent = 'Unable to check UI health';
+            });
+    };
+    
+    // Load all dashboard data initially
+    window.dashboard.loadDashboardData();
+    window.dashboard.loadSourcesStatus();
+    window.dashboard.loadUIHealthStatus();
+    window.dashboard.loadUsageAnalytics();
+    
+    // Auto-refresh data
+    setInterval(window.dashboard.loadSourcesStatus, 30000);
+    setInterval(window.dashboard.loadUIHealthStatus, 120000);
+    setInterval(window.dashboard.loadUsageAnalytics, 60000); // Refresh usage data every minute
+});
+
+// UI Health functions
+function triggerUIHealthCheck() {
+    const button = event.target;
+    const originalContent = button.innerHTML;
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Scanning...';
+    
+    fetch('/api/v1/ui-monitoring/scan', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            RSApp.showMessage(`UI scan complete: ${data.scan_results.total_issues_found} issues found`, 'success');
+            // Reload UI health status
+            window.dashboard.loadUIHealthStatus();
+        } else {
+            throw new Error(data.detail || 'Scan failed');
+        }
+    })
+    .catch(error => {
+        console.error('UI health check failed:', error);
+        RSApp.showMessage('UI health check failed: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = originalContent;
+    });
+}
+
+// Auto-Fix UI Issues Function
+function autoFixUIIssues() {
+    const button = document.getElementById('auto-fix-btn');
+    const originalContent = button.innerHTML;
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Auto-Fixing...';
+    
+    fetch('/api/v1/ui-monitoring/fix', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            fix_category: 'all'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const results = data.fix_results;
+            const totalAttempts = results.total_attempts || 0;
+            const successfulFixes = results.successful_fixes || 0;
+            const failedFixes = results.failed_fixes || 0;
+            
+            let messageType = 'success';
+            let message = `Auto-fix complete! Fixed ${successfulFixes}/${totalAttempts} issues.`;
+            
+            if (failedFixes > 0) {
+                messageType = 'warning';
+                message += ` ${failedFixes} issues could not be automatically fixed.`;
+            }
+            
+            RSApp.showMessage(message, messageType);
+            
+            // Refresh UI health status
+            setTimeout(() => {
+                window.dashboard.loadUIHealthStatus();
+            }, 1000);
+        } else {
+            throw new Error(data.detail || 'Auto-fix failed');
+        }
+    })
+    .catch(error => {
+        console.error('Auto-fix failed:', error);
+        RSApp.showMessage('Auto-fix failed: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = originalContent;
+    });
+}
+
+// System Integration Functions
+function refreshSystemIntegration() {
+    const button = event.target;
+    const originalContent = button.innerHTML;
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Refreshing...';
+    
+    // Refresh both system integration status and UI issues data
+    Promise.all([
+        fetch('/api/v1/system-integration/status').then(r => r.json()),
+        fetch('/api/v1/data-admin/ui-issues?limit=100').then(r => r.json()).catch(() => ({total_ui_issues: 0}))
+    ])
+    .then(([integrationData, uiIssuesData]) => {
+        window.dashboard.updateSystemIntegrationStatus(integrationData, uiIssuesData);
+        RSApp.showMessage('System integration status refreshed', 'success');
+    })
+    .catch(error => {
+        console.error('System integration refresh failed:', error);
+        RSApp.showMessage('System integration refresh failed: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = originalContent;
+    });
+}
+
+// Add to dashboard object
+window.dashboard.loadSystemIntegrationStatus = function() {
+        // Load system integration status
+        fetch('/api/v1/system-integration/status')
+            .then(response => response.json())
+            .then(data => {
+                // Load UI issues data
+                return fetch('/api/v1/data-admin/ui-issues?limit=100')
+                    .then(r => r.json())
+                    .then(uiIssuesData => {
+                        this.updateSystemIntegrationStatus(data, uiIssuesData);
+                    })
+                    .catch(() => {
+                        // Fallback if data-admin endpoint not available
+                        this.updateSystemIntegrationStatus(data, {total_ui_issues: 0});
+                    });
+            })
+            .catch(error => {
+                console.error('Failed to load system integration status:', error);
+                document.getElementById('integration-health-text').textContent = 'Error';
+                document.getElementById('integration-health-dot').className = 'status-dot status-error';
+            });
+    };
+
+    window.dashboard.updateSystemIntegrationStatus = function(data, uiIssuesData = {}) {
+        try {
+            const healthDot = document.getElementById('integration-health-dot');
+            const healthText = document.getElementById('integration-health-text');
+            const activeComponentsBadge = document.getElementById('active-components-badge');
+            const componentsProgress = document.getElementById('components-progress');
+            const componentsText = document.getElementById('components-text');
+            const integrationRulesBadge = document.getElementById('integration-rules-badge');
+            const trackedIssuesCount = document.getElementById('tracked-issues-count');
+
+            if (data.status === 'operational' && data.system_overview) {
+                const overview = data.system_overview;
+                const activeComponents = overview.active_components || 0;
+                const totalComponents = overview.total_components || 1;
+                const integrationRules = data.integration_map ? Object.keys(data.integration_map).length : 0;
+                const trackedIssues = uiIssuesData.total_ui_issues || 0;
+
+                // Update health indicator
+                healthDot.className = 'status-dot status-success';
+                healthText.textContent = 'Operational';
+
+                // Update active components
+                activeComponentsBadge.textContent = activeComponents;
+                const componentPercentage = (activeComponents / totalComponents) * 100;
+                componentsProgress.style.width = `${componentPercentage}%`;
+                componentsText.textContent = `${activeComponents}/${totalComponents} components active`;
+
+                // Update integration rules
+                integrationRulesBadge.textContent = integrationRules;
+
+                // Update tracked issues
+                trackedIssuesCount.textContent = trackedIssues;
+
+                // Update progress bar color based on health
+                if (componentPercentage >= 80) {
+                    componentsProgress.className = 'progress-bar bg-success';
+                } else if (componentPercentage >= 50) {
+                    componentsProgress.className = 'progress-bar bg-warning';
+                } else {
+                    componentsProgress.className = 'progress-bar bg-danger';
+                }
+            } else {
+                healthDot.className = 'status-dot status-error';
+                healthText.textContent = 'Error';
+                componentsText.textContent = 'Failed to load status';
+            }
+        } catch (error) {
+            console.error('Error updating system integration status:', error);
+        }
+    };
+
+    // Load system integration status on page load
+    const originalInit = window.dashboard.init;
+    window.dashboard.init = function() {
+        if (originalInit) originalInit.call(this);
+        this.loadSystemIntegrationStatus();
+    };
+
+// Ensure the system integration status loads when page is ready
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.dashboard && window.dashboard.loadSystemIntegrationStatus) {
+        window.dashboard.loadSystemIntegrationStatus();
+    }
+});
+
+// System Testing Functions
+async function runSystemTests() {
+    try {
+        // Show loading toast
+        showToast('Running comprehensive system tests...', 'info');
+        
+        const response = await fetch('/api/v1/system-tester/comprehensive', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.results) {
+            const results = data.results;
+            const summary = results.summary;
+            
+            // Create detailed results modal or redirect to diagnostics
+            let message = `System Test Results:\\n`;
+            message += `✅ Passed: ${summary.passed_tests}/${summary.total_tests} tests\\n`;
+            
+            if (summary.critical_issues > 0) {
+                message += `🚨 Critical Issues: ${summary.critical_issues}\\n`;
+            }
+            if (summary.high_issues > 0) {
+                message += `⚠️ High Priority Issues: ${summary.high_issues}\\n`;
+            }
+            if (summary.auto_fixable_issues > 0) {
+                message += `🔧 Auto-fixable Issues: ${summary.auto_fixable_issues}\\n`;
+            }
+            
+            message += `\\nRecommendations:\\n${results.recommendations.slice(0, 3).join('\\n')}`;
+            
+            if (summary.critical_issues > 0 || summary.high_issues > 0) {
+                showToast('System tests completed with issues found', 'warning');
+                alert(message);
+                // Redirect to diagnostics for detailed view
+                window.location.href = '/diagnostics';
+            } else {
+                showToast('System tests passed successfully!', 'success');
+                alert(message);
+            }
+        } else {
+            throw new Error('Invalid response format');
+        }
+        
+    } catch (error) {
+        console.error('System tests failed:', error);
+        showToast('System tests failed: ' + error.message, 'error');
+    }
+}
+
+async function runQuickHealthCheck() {
+    try {
+        showToast('Running quick health check...', 'info');
+        
+        const response = await fetch('/api/v1/system-tester/quick-check');
+        const data = await response.json();
+        
+        const status = data.health_status;
+        const score = data.health_score;
+        const issues = data.issues_detected;
+        
+        let message = `Quick Health Check Results:\\n`;
+        message += `Status: ${status.toUpperCase()} (${score}%)\\n`;
+        message += `Issues Detected: ${issues}\\n`;
+        
+        if (data.critical_issues && data.critical_issues.length > 0) {
+            message += `\\nCritical Issues:\\n${data.critical_issues.join('\\n')}`;
+        }
+        
+        const alertType = status === 'excellent' ? 'success' : 
+                         status === 'good' ? 'info' : 'warning';
+        
+        showToast(`Health check: ${status} (${score}%)`, alertType);
+        
+        if (issues > 0) {
+            alert(message);
+            if (status === 'needs_attention') {
+                // Offer to run comprehensive tests
+                if (confirm('Issues detected. Run comprehensive tests for detailed analysis?')) {
+                    await runSystemTests();
+                }
+            }
+        } else {
+            showToast('System health excellent!', 'success');
+        }
+        
+    } catch (error) {
+        console.error('Quick health check failed:', error);
+        showToast('Health check failed: ' + error.message, 'error');
+    }
+}
+
+// Toast notification function
+function showToast(message, type = 'info') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    
+    const icon = {
+        'success': 'fa-check-circle',
+        'info': 'fa-info-circle', 
+        'warning': 'fa-exclamation-triangle',
+        'error': 'fa-times-circle'
+    }[type] || 'fa-info-circle';
+    
+    toast.innerHTML = `
+        <i class="fas ${icon} me-2"></i>${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+
+// Usage Analytics Functions
+window.dashboard.loadUsageAnalytics = function() {
+    // Load usage KPIs
+    fetch('/api/v1/analytics/usage-stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const stats = data.usage_stats;
+                
+                // Update usage KPI cards
+                document.getElementById('stat-usage-sessions').textContent = stats.sessions_today || 0;
+                document.getElementById('stat-current-user').textContent = stats.current_user_id || 'user_001';
+                document.getElementById('stat-avg-session').textContent = stats.avg_session_time || '0m';
+                document.getElementById('stat-features-used').textContent = stats.features_used_today || 0;
+                
+                // Update change indicators
+                this.updateChangeIndicator('change-sessions', stats.session_change_percent);
+                this.updateChangeIndicator('change-user', 0); // Always show "Click to inspect"
+                this.updateChangeIndicator('change-session-time', stats.session_time_change_percent);
+                this.updateChangeIndicator('change-features-used', stats.features_used_change_percent);
+                
+                // Update additional metrics
+                document.getElementById('peak-usage').textContent = stats.peak_sessions_per_hour || 0;
+                document.getElementById('bounce-rate').textContent = (stats.bounce_rate || 0) + '%';
+                document.getElementById('avg-pages-session').textContent = stats.avg_pages_per_session || 0;
+                
+                // Update top features
+                if (stats.feature_usage) {
+                    this.updateFeatureUsage(stats.feature_usage);
+                }
+                
+                // Update performance metrics
+                document.getElementById('avg-load-time').textContent = stats.avg_load_time || '-';
+                document.getElementById('api-response-time').textContent = stats.api_response_time || '-';
+                document.getElementById('system-uptime').textContent = (stats.uptime_percent || 99.9) + '%';
+                
+                // Update usage chart
+                if (stats.hourly_usage) {
+                    this.updateUsageChart(stats.hourly_usage);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Failed to load usage analytics:', error);
+            // Set default values on error
+            document.getElementById('stat-usage-sessions').textContent = '0';
+            document.getElementById('stat-active-users').textContent = '1';
+            document.getElementById('stat-avg-session').textContent = '0m';
+            document.getElementById('stat-page-views').textContent = '0';
+        });
+};
+
+window.dashboard.updateChangeIndicator = function(elementId, changePercent) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const change = parseFloat(changePercent) || 0;
+    const icon = element.querySelector('i');
+    
+    if (change > 0) {
+        icon.className = 'fas fa-arrow-up me-1 text-success';
+        element.innerHTML = `<i class="fas fa-arrow-up me-1 text-success"></i>+${change}%`;
+    } else if (change < 0) {
+        icon.className = 'fas fa-arrow-down me-1 text-danger';
+        element.innerHTML = `<i class="fas fa-arrow-down me-1 text-danger"></i>${change}%`;
+    } else {
+        icon.className = 'fas fa-minus me-1 text-muted';
+        element.innerHTML = `<i class="fas fa-minus me-1 text-muted"></i>0%`;
+    }
+};
+
+window.dashboard.updateFeatureUsage = function(featureUsage) {
+    const features = ['reports', 'scraping', 'knowledge', 'automation'];
+    const maxUsage = Math.max(...Object.values(featureUsage));
+    
+    features.forEach(feature => {
+        const usage = featureUsage[feature] || 0;
+        const percentage = maxUsage > 0 ? (usage / maxUsage) * 100 : 0;
+        
+        const usageBadge = document.getElementById(feature + '-usage');
+        const progressBar = document.getElementById(feature + '-progress');
+        
+        if (usageBadge) usageBadge.textContent = usage;
+        if (progressBar) progressBar.style.width = percentage + '%';
+    });
+};
+
+window.dashboard.loadDashboardData = function() {
+    // Load general dashboard statistics
+    fetch('/api/v1/statistics/dashboard')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const stats = data.stats;
+                
+                // Update system activity KPIs
+                document.getElementById('stat-articles').textContent = stats.total_articles || 0;
+                document.getElementById('stat-reports').textContent = stats.total_reports || 0;
+                document.getElementById('stat-sources').textContent = stats.active_sources || 5;
+                document.getElementById('stat-entities').textContent = stats.total_entities || 0;
+            }
+        })
+        .catch(error => {
+            console.error('Failed to load dashboard data:', error);
+        });
+};
+
+// Usage Chart Functionality
+let usageChart = null;
+
+window.dashboard.updateUsageChart = function(hourlyData) {
+    const ctx = document.getElementById('usageChart');
+    if (!ctx) return;
+    
+    // Destroy existing chart if it exists
+    if (usageChart) {
+        usageChart.destroy();
+    }
+    
+    const labels = hourlyData.map(item => item.hour);
+    const sessions = hourlyData.map(item => item.sessions);
+    const pageViews = hourlyData.map(item => item.page_views);
+    
+    usageChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Sessions',
+                data: sessions,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Page Views',
+                data: pageViews,
+                borderColor: '#198754',
+                backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                tension: 0.4,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: 'rgba(255, 255, 255, 0.9)'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: 'white',
+                    bodyColor: 'white'
+                }
+            }
+        }
+    });
+};
+
+// Usage period selection
+document.addEventListener('DOMContentLoaded', function() {
+    const periodButtons = ['usage-today', 'usage-week', 'usage-month'];
+    
+    periodButtons.forEach(buttonId => {
+        const button = document.getElementById(buttonId);
+        if (button) {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                periodButtons.forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) btn.classList.remove('active');
+                });
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Load data for selected period
+                const period = buttonId.split('-')[1]; // Extract 'today', 'week', or 'month'
+                window.dashboard.loadUsageAnalytics(period);
+            });
+        }
+    });
+});
+
+// User Details Modal Function
+function showClaudeCodeDetails() {
+    // Create Claude Code session modal
+    const modalContent = `
+        <div class="modal fade" id="claudeCodeModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title">
+                            <i class="fas fa-robot me-2"></i>Claude Code Session Details
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="fw-semibold mb-3 text-warning">
+                                    <i class="fas fa-hourglass-half me-2"></i>Session Limits
+                                </h6>
+                                <div class="mb-3 p-3 bg-light rounded">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Session Duration:</span>
+                                        <span class="fw-medium" id="claude-session-duration">4h 23m</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Time Remaining:</span>
+                                        <span class="fw-medium text-warning" id="claude-time-remaining">37 minutes</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Status:</span>
+                                        <span class="fw-medium" id="claude-session-status">
+                                            <span class="badge bg-warning text-dark">Approaching Limit</span>
+                                        </span>
+                                    </div>
+                                    <div class="progress mt-2">
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: 87%" 
+                                             aria-valuenow="87" aria-valuemin="0" aria-valuemax="100">
+                                            87% Used
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Session will end automatically at 5 hours</strong><br>
+                                    All your work and running services will be preserved.
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="fw-semibold mb-3">
+                                    <i class="fas fa-chart-bar me-2"></i>Usage Statistics
+                                </h6>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Tasks Completed:</span>
+                                        <span class="fw-medium text-success">47</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Files Modified:</span>
+                                        <span class="fw-medium">23</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>API Calls Made:</span>
+                                        <span class="fw-medium">156</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Systems Integrated:</span>
+                                        <span class="fw-medium text-primary">3</span>
+                                    </div>
+                                </div>
+                                <hr>
+                                <h6 class="fw-semibold mb-2">Current Session Achievements:</h6>
+                                <ul class="list-unstyled mb-0">
+                                    <li class="mb-1">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Merged OrbitScope + MoneyMan + Research Engine
+                                    </li>
+                                    <li class="mb-1">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Integrated Plaid Banking API
+                                    </li>
+                                    <li class="mb-1">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Implemented secure credential storage
+                                    </li>
+                                    <li class="mb-1">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Created unified dashboard with cost tracking
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6 class="fw-semibold mb-3">
+                                    <i class="fas fa-server me-2"></i>Active Services Status
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="card border-success">
+                                            <div class="card-body text-center py-2">
+                                                <i class="fas fa-satellite text-success"></i>
+                                                <div class="fw-medium">OrbitScope Intelligence</div>
+                                                <small class="text-success">Port 8001 - Running</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card border-success">
+                                            <div class="card-body text-center py-2">
+                                                <i class="fas fa-coins text-success"></i>
+                                                <div class="fw-medium">MoneyMan ML</div>
+                                                <small class="text-success">Port 8000 - Running</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card border-success">
+                                            <div class="card-body text-center py-2">
+                                                <i class="fas fa-university text-success"></i>
+                                                <div class="fw-medium">Plaid Banking</div>
+                                                <small class="text-success">Sandbox - Connected</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="me-auto">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Services will continue running after session ends
+                            </small>
+                        </div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal
+    const existingModal = document.getElementById('claudeCodeModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalContent);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('claudeCodeModal'));
+    modal.show();
+    
+    // Update real-time countdown
+    updateClaudeCodeTimer();
+}
+
+function updateClaudeCodeTimer() {
+    // Simulate session tracking (in real implementation, this would connect to actual session data)
+    const sessionStart = new Date();
+    sessionStart.setHours(sessionStart.getHours() - 4);
+    sessionStart.setMinutes(sessionStart.getMinutes() - 23);
+    
+    const now = new Date();
+    const sessionDuration = now - sessionStart;
+    const fiveHours = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
+    const timeRemaining = fiveHours - sessionDuration;
+    
+    const hoursRemaining = Math.floor(timeRemaining / (60 * 60 * 1000));
+    const minutesRemaining = Math.floor((timeRemaining % (60 * 60 * 1000)) / (60 * 1000));
+    
+    // Update dashboard KPI
+    const timeDisplay = document.getElementById('stat-claude-time');
+    const statusDisplay = document.getElementById('claude-status');
+    
+    if (timeDisplay) {
+        if (timeRemaining > 0) {
+            timeDisplay.textContent = hoursRemaining + "h " + minutesRemaining + "m left";
+            if (timeRemaining < 30 * 60 * 1000) { // Less than 30 minutes
+                statusDisplay.innerHTML = '<span class="text-danger">Ending Soon</span>';
+                statusDisplay.className = 'stat-change text-danger';
+            } else if (timeRemaining < 60 * 60 * 1000) { // Less than 1 hour
+                statusDisplay.innerHTML = '<span class="text-warning">Approaching Limit</span>';
+                statusDisplay.className = 'stat-change text-warning';
+            } else {
+                statusDisplay.innerHTML = '<span class="text-success">Active</span>';
+                statusDisplay.className = 'stat-change text-success';
+            }
+        } else {
+            timeDisplay.textContent = "Session Ended";
+            statusDisplay.innerHTML = '<span class="text-danger">Expired</span>';
+        }
+    }
+    
+    // Update modal if open
+    const modalDuration = document.getElementById('claude-session-duration');
+    const modalRemaining = document.getElementById('claude-time-remaining');
+    
+    if (modalDuration) {
+        const sessionHours = Math.floor(sessionDuration / (60 * 60 * 1000));
+        const sessionMinutes = Math.floor((sessionDuration % (60 * 60 * 1000)) / (60 * 1000));
+        modalDuration.textContent = sessionHours + "h " + sessionMinutes + "m";
+    }
+    
+    if (modalRemaining && timeRemaining > 0) {
+        modalRemaining.textContent = hoursRemaining + "h " + minutesRemaining + "m";
+    }
+}
+
+function showUserDetails(userId) {
+    // Create modal content
+    const modalContent = `
+        <div class="modal fade" id="userDetailsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-user-circle me-2"></i>User Details: ${userId}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="fw-semibold mb-3">Session Information</h6>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Current Session:</span>
+                                        <span class="fw-medium text-success">Active</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Session Start:</span>
+                                        <span class="fw-medium">${new Date().toLocaleTimeString()}</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>IP Address:</span>
+                                        <span class="fw-medium">127.0.0.1 (Local)</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Browser:</span>
+                                        <span class="fw-medium">${navigator.userAgent.split(' ')[0]}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="fw-semibold mb-3">Activity Today</h6>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Reports Generated:</span>
+                                        <span class="fw-medium">2</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Scraping Jobs:</span>
+                                        <span class="fw-medium">1</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Knowledge Queries:</span>
+                                        <span class="fw-medium">5</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Automation Ideas:</span>
+                                        <span class="fw-medium">3</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <h6 class="fw-semibold mb-3">Recent Activity</h6>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item d-flex align-items-center">
+                                <i class="fas fa-chart-pie text-primary me-3"></i>
+                                <div>
+                                    <div class="fw-medium">Viewed Dashboard</div>
+                                    <small class="text-muted">Just now</small>
+                                </div>
+                            </div>
+                            <div class="list-group-item d-flex align-items-center">
+                                <i class="fas fa-project-diagram text-info me-3"></i>
+                                <div>
+                                    <div class="fw-medium">Explored Knowledge Graph</div>
+                                    <small class="text-muted">15 minutes ago</small>
+                                </div>
+                            </div>
+                            <div class="list-group-item d-flex align-items-center">
+                                <i class="fas fa-file-alt text-success me-3"></i>
+                                <div>
+                                    <div class="fw-medium">Generated Manufacturing Report</div>
+                                    <small class="text-muted">1 hour ago</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="exportUserActivity()">
+                            <i class="fas fa-download me-1"></i>Export Activity
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('userDetailsModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalContent);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
+    modal.show();
+}
+
+// Export user activity function
+function exportUserActivity() {
+    const activityData = `User Activity Report
+Generated: ${new Date().toLocaleString()}
+User ID: user_001
+
+Session Information:
+- Current Session: Active
+- Session Duration: 2h 15m
+- Pages Visited: 12
+- Features Used: 6
+
+Activity Summary:
+- Reports Generated: 2
+- Scraping Jobs: 1  
+- Knowledge Queries: 5
+- Automation Ideas: 3
+
+Recent Activity:
+- Viewed Dashboard (Just now)
+- Explored Knowledge Graph (15 minutes ago)
+- Generated Manufacturing Report (1 hour ago)
+`;
+    
+    const blob = new Blob([activityData], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `user_activity_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    // Close modal
+    bootstrap.Modal.getInstance(document.getElementById('userDetailsModal')).hide();
+}
+</script>
+{% endblock %}

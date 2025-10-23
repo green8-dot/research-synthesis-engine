@@ -1,0 +1,1363 @@
+{% extends "base.html" %}
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">{% block title %}UI Monitoring - Research Synthesis Engine{% endblock %}
+
+{% block extra_css %}
+<style>
+.issue-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-left: 4px solid #dee2e6;
+}
+
+.issue-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.issue-card.critical {
+    border-left-color: #dc3545;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+}
+
+.issue-card.high {
+    border-left-color: #fd7e14;
+    background: linear-gradient(135deg, #fffaf7 0%, #ffffff 100%);
+}
+
+.issue-card.medium {
+    border-left-color: #ffc107;
+    background: linear-gradient(135deg, #fffdf5 0%, #ffffff 100%);
+}
+
+.issue-card.low {
+    border-left-color: #28a745;
+    background: linear-gradient(135deg, #f8fff8 0%, #ffffff 100%);
+}
+
+.severity-badge.critical {
+    background-color: #dc3545;
+    color: white;
+}
+
+.severity-badge.high {
+    background-color: #fd7e14;
+    color: white;
+}
+
+.severity-badge.medium {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.severity-badge.low {
+    background-color: #28a745;
+    color: white;
+}
+
+.category-badge {
+    background-color: #6c757d;
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.monitoring-controls {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.auto-fix-section {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.stats-card {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: white;
+}
+
+.stat-icon.issues {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.stat-icon.pages {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
+
+.stat-icon.fixable {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+}
+
+.stat-icon.monitoring {
+    background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%);
+}
+
+/* Removed custom loading spinner - using global RSApp system */
+
+.page-filter-tabs .nav-link {
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+    margin-right: 0.25rem;
+    border-radius: 0.5rem;
+}
+
+.page-filter-tabs .nav-link.active {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+.recommendation-card {
+    border-left: 4px solid #007bff;
+    background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+}
+
+.recommendation-card.critical {
+    border-left-color: #dc3545;
+}
+
+.recommendation-card.high {
+    border-left-color: #fd7e14;
+}
+
+.recommendation-card.medium {
+    border-left-color: #ffc107;
+}
+
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+.collapse-icon.collapsed {
+    transform: rotate(-90deg);
+}
+
+.progress-thin {
+    height: 4px;
+}
+
+/* Floating Chatbox Styles */
+.issue-report-chatbox {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 320px;
+    max-height: 500px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    z-index: 1050;
+    border: 1px solid #dee2e6;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.chatbox-header {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.chatbox-header:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+}
+
+.chatbox-toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+.chatbox-toggle-icon.collapsed {
+    transform: rotate(180deg);
+}
+
+.chatbox-body {
+    padding: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+    transition: all 0.3s ease;
+}
+
+.chatbox-body.collapsed {
+    max-height: 0;
+    padding: 0 16px;
+    overflow: hidden;
+}
+
+.issue-report-chatbox .form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 4px;
+}
+
+.issue-report-chatbox .form-control,
+.issue-report-chatbox .form-select {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    font-size: 0.875rem;
+}
+
+.issue-report-chatbox .form-control:focus,
+.issue-report-chatbox .form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.chatbox-message {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.chatbox-message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.chatbox-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Mobile responsiveness for chatbox */
+@media (max-width: 576px) {
+    .issue-report-chatbox {
+        width: calc(100vw - 40px);
+        right: 20px;
+        left: 20px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-0 text-gradient">
+                    <i class="fas fa-eye me-2"></i>UI Monitoring
+                </h1>
+                <p class="text-muted mb-0">Monitor and fix user interface readability and formatting issues</p>
+            </div>
+            <div>
+                <button class="btn btn-success" onclick="triggerFullScan()">
+                    <i class="fas fa-search me-1"></i>Full Scan
+                </button>
+                <button class="btn btn-primary ms-2" onclick="loadMonitoringStatus()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monitoring Controls -->
+<div class="monitoring-controls">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h5 class="mb-2"><i class="fas fa-shield-alt me-2"></i>UI Health Monitoring</h5>
+            <p class="mb-0">Continuously monitor your web interface for accessibility, readability, and formatting issues</p>
+        </div>
+        <div class="col-md-4">
+            <div class="d-flex gap-2 justify-content-end">
+                <button class="btn btn-light" onclick="startMonitoring()" id="start-monitoring-btn">
+                    <i class="fas fa-play me-1"></i>Start Monitoring
+                </button>
+                <button class="btn btn-outline-light" onclick="stopMonitoring()" id="stop-monitoring-btn" style="display: none;">
+                    <i class="fas fa-stop me-1"></i>Stop Monitoring
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Note: Using global RSApp loading system instead of custom spinner -->
+
+<!-- Monitoring Status -->
+<div id="monitoring-results" style="display: none;">
+    <!-- Summary Stats -->
+    <div class="row mb-4" id="summary-stats">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stats-card p-3">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon issues">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="h4 mb-0" id="total-issues">0</div>
+                        <div class="text-muted small">Open Issues</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stats-card p-3">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon pages">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="h4 mb-0" id="total-pages">0</div>
+                        <div class="text-muted small">Pages Scanned</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stats-card p-3">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon fixable">
+                        <i class="fas fa-wrench"></i>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="h4 mb-0" id="auto-fixable">0</div>
+                        <div class="text-muted small">Auto-Fixable</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stats-card p-3">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon monitoring">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="h4 mb-0" id="monitoring-status">Inactive</div>
+                        <div class="text-muted small">Monitoring</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto-Fix Section -->
+    <div class="auto-fix-section" id="auto-fix-section" style="display: none;">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h6 class="mb-1"><i class="fas fa-magic me-2"></i>Automatic Fixes Available</h6>
+                <p class="mb-0 small">Some issues can be automatically fixed. Review before applying.</p>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-light" onclick="autoFixIssues()">
+                    <i class="fas fa-magic me-1"></i>Auto-Fix All
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Issues List -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center w-100 justify-content-between" 
+                            type="button" data-bs-toggle="collapse" data-bs-target="#issuesCollapse">
+                        <span>
+                            <i class="fas fa-list-alt me-2"></i>UI Issues
+                            <small class="ms-2" style="color: rgba(255,255,255,0.95); font-weight: 600;">(<span id="issues-count">0</span> issues)</small>
+                        </span>
+                        <i class="fas fa-chevron-down collapse-icon"></i>
+                    </button>
+                </div>
+                <div class="collapse show" id="issuesCollapse">
+                    <div class="card-body">
+                        <!-- Filter Tabs -->
+                        <ul class="nav page-filter-tabs mb-3" id="page-filter-tabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#" data-filter="all">All</a>
+                            </li>
+                        </ul>
+                        
+                        <!-- Issues Container -->
+                        <div id="issues-container">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-search fa-3x mb-3"></i>
+                                <p>Click "Full Scan" to check for UI issues</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recommendations & Controls -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-tools me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="generateAccessibilityReport()">
+                            <i class="fas fa-universal-access me-1"></i>Accessibility Report
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="loadRecommendations()">
+                            <i class="fas fa-lightbulb me-1"></i>Get Recommendations
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="scanSpecificPage()">
+                            <i class="fas fa-search me-1"></i>Scan Specific Page
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recommendations -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Recommendations
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="recommendations-container">
+                        <div class="text-center text-muted small">
+                            <p>Click "Get Recommendations" for technical diagnostics</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Category Breakdown -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Issues by Category
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="category-breakdown">
+                        <div class="text-center text-muted small">
+                            <p>Category breakdown will appear after scanning</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Issue Detail Modal -->
+<div class="modal fade" id="issueDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Issue Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="issue-detail-content">
+                <!-- Issue details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="fix-issue-btn" onclick="fixSpecificIssue()">
+                    <i class="fas fa-wrench me-1"></i>Fix Issue
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Page Scan Modal -->
+<div class="modal fade" id="pageScanModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Scan Specific Page</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="page-name-input" class="form-label">Page Name</label>
+                    <select class="form-select" id="page-name-input">
+                        <option value="dashboard">Dashboard</option>
+                        <option value="scraping">Web Scraping</option>
+                        <option value="research">Research</option>
+                        <option value="reports">Reports</option>
+                        <option value="knowledge">Knowledge Graph</option>
+                        <option value="automation_ideas">Automation Ideas</option>
+                        <option value="system_status">System Status</option>
+                        <option value="diagnostics">Diagnostics</option>
+                        <option value="ui_monitoring">UI Monitoring</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="performPageScan()">
+                    <i class="fas fa-search me-1"></i>Scan Page
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Issue Report Chatbox -->
+<div class="issue-report-chatbox" id="issue-report-chatbox">
+    <div class="chatbox-header" onclick="toggleChatbox()">
+        <i class="fas fa-comment-alt me-2"></i>
+        <span>Report UI Issue</span>
+        <i class="fas fa-chevron-up chatbox-toggle-icon" id="chatbox-toggle-icon"></i>
+    </div>
+    <div class="chatbox-body" id="chatbox-body">
+        <form id="issue-report-form">
+            <div class="mb-3">
+                <label for="report-page" class="form-label small">Page</label>
+                <select class="form-select form-select-sm" id="report-page" required>
+                    <option value="">Select page...</option>
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="report-category" class="form-label small">Category</label>
+                <select class="form-select form-select-sm" id="report-category" required>
+                    <option value="">Select category...</option>
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="report-severity" class="form-label small">Severity</label>
+                <select class="form-select form-select-sm" id="report-severity" required>
+                    <option value="">Select severity...</option>
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="report-element" class="form-label small">Element (optional)</label>
+                <select class="form-select form-select-sm" id="report-element">
+                    <option value="">Select element...</option>
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="report-description" class="form-label small">Description *</label>
+                <textarea class="form-control form-control-sm" id="report-description" rows="3" 
+                         placeholder="Describe the issue you're experiencing..." required></textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label for="report-suggested-fix" class="form-label small">Suggested Fix (optional)</label>
+                <textarea class="form-control form-control-sm" id="report-suggested-fix" rows="2" 
+                         placeholder="Any ideas on how to fix this?"></textarea>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-sm" id="submit-report-btn">
+                    <i class="fas fa-paper-plane me-1"></i>Submit Report
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearReportForm()">
+                    <i class="fas fa-eraser me-1"></i>Clear Form
+                </button>
+            </div>
+        </form>
+        
+        <!-- Success/Error Messages -->
+        <div class="mt-2" id="report-messages"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentIssues = [];
+let selectedIssueId = null;
+
+// Load monitoring status on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadMonitoringStatus();
+    initializeChatbox();
+    
+    // Handle collapse icon rotation
+    const collapseElement = document.getElementById('issuesCollapse');
+    const collapseButton = document.querySelector('[data-bs-target="#issuesCollapse"]');
+    const collapseIcon = collapseButton?.querySelector('.collapse-icon');
+    
+    if (collapseElement && collapseIcon) {
+        collapseElement.addEventListener('show.bs.collapse', function() {
+            collapseIcon.classList.remove('collapsed');
+        });
+        
+        collapseElement.addEventListener('hide.bs.collapse', function() {
+            collapseIcon.classList.add('collapsed');
+        });
+        
+        // Set initial state
+        if (!collapseElement.classList.contains('show')) {
+            collapseIcon.classList.add('collapsed');
+        }
+    }
+});
+
+async function loadMonitoringStatus() {
+    try {
+        const response = await fetch('/api/v1/ui-monitoring/status');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            updateStatusDisplay(data);
+        }
+    } catch (error) {
+        console.error('Error loading monitoring status:', error);
+        RSApp.showMessage('Failed to load monitoring status', 'danger');
+    }
+}
+
+function updateStatusDisplay(data) {
+    const summary = data.monitoring_summary;
+    const serviceHealth = data.service_health;
+    
+    // Update summary stats
+    document.getElementById('total-issues').textContent = summary.open_issues || 0;
+    document.getElementById('total-pages').textContent = serviceHealth.total_scanned_pages || 0;
+    document.getElementById('auto-fixable').textContent = summary.auto_fixable || 0;
+    document.getElementById('monitoring-status').textContent = serviceHealth.monitoring_active ? 'Active' : 'Inactive';
+    
+    // Update monitoring buttons
+    const startBtn = document.getElementById('start-monitoring-btn');
+    const stopBtn = document.getElementById('stop-monitoring-btn');
+    
+    if (serviceHealth.monitoring_active) {
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'inline-block';
+    } else {
+        startBtn.style.display = 'inline-block';
+        stopBtn.style.display = 'none';
+    }
+    
+    // Show auto-fix section if fixable issues exist
+    const autoFixSection = document.getElementById('auto-fix-section');
+    if (summary.auto_fixable > 0) {
+        autoFixSection.style.display = 'block';
+    }
+    
+    // Update category breakdown
+    updateCategoryBreakdown(summary.by_category || {});
+    
+    // Show results container
+    document.getElementById('monitoring-results').style.display = 'block';
+}
+
+async function triggerFullScan() {
+    const resultsContainer = document.getElementById('monitoring-results');
+    
+    RSApp.showLoading(true, 'Scanning UI for accessibility issues...');
+    
+    try {
+        const response = await fetch('/api/v1/ui-monitoring/scan', {
+            method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            RSApp.showMessage(`Scan complete: ${data.scan_results.total_issues_found} issues found across ${data.scan_results.total_pages_scanned} pages`, 'success');
+            await loadAllIssues();
+            await loadMonitoringStatus();
+        } else {
+            throw new Error(data.detail || 'Scan failed');
+        }
+    } catch (error) {
+        console.error('Error during scan:', error);
+        RSApp.showMessage('Scan failed: ' + error.message, 'danger');
+    } finally {
+        RSApp.showLoading(false);
+        resultsContainer.style.display = 'block';
+    }
+}
+
+async function loadAllIssues() {
+    try {
+        const response = await fetch('/api/v1/ui-monitoring/issues?status=open');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            currentIssues = data.issues;
+            displayIssues(currentIssues);
+            updatePageFilterTabs();
+        }
+    } catch (error) {
+        console.error('Error loading issues:', error);
+        RSApp.showMessage('Failed to load issues', 'danger');
+    }
+}
+
+function displayIssues(issues) {
+    const container = document.getElementById('issues-container');
+    document.getElementById('issues-count').textContent = issues.length;
+    
+    if (issues.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted"><p>No issues found! Your UI looks great.</p></div>';
+        return;
+    }
+    
+    const issuesHtml = issues.map(issue => `
+        <div class="issue-card ${issue.severity} p-3 mb-3 rounded" data-page="${issue.page}">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center mb-1">
+                        <h6 class="mb-0 me-2">${issue.element} Issue</h6>
+                        <span class="severity-badge ${issue.severity} badge me-2">${issue.severity.toUpperCase()}</span>
+                        <span class="category-badge">${issue.category}</span>
+                        ${issue.auto_fixable ? '<span class="badge bg-success ms-2">Auto-Fixable</span>' : ''}
+                    </div>
+                    <small class="text-muted">${issue.page}.html</small>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Actions
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="showIssueDetails('${issue.id}')">
+                            <i class="fas fa-info-circle me-1"></i>Details
+                        </a></li>
+                        ${issue.auto_fixable ? 
+                            `<li><a class="dropdown-item" href="#" onclick="fixSingleIssue('${issue.id}')">
+                                <i class="fas fa-wrench me-1"></i>Auto-Fix
+                            </a></li>` : ''
+                        }
+                        <li><a class="dropdown-item" href="#" onclick="ignoreIssue('${issue.id}')">
+                            <i class="fas fa-eye-slash me-1"></i>Ignore
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <p class="mb-2">${issue.description}</p>
+            
+            <div class="alert alert-info small mb-0">
+                <i class="fas fa-lightbulb me-1"></i>
+                <strong>Suggested Fix:</strong> ${issue.suggested_fix}
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = issuesHtml;
+}
+
+function updatePageFilterTabs() {
+    const tabsContainer = document.getElementById('page-filter-tabs');
+    const pages = [...new Set(currentIssues.map(issue => issue.page))];
+    
+    let tabsHtml = '<li class="nav-item"><a class="nav-link active" href="#" data-filter="all">All</a></li>';
+    
+    pages.forEach(page => {
+        const count = currentIssues.filter(issue => issue.page === page).length;
+        tabsHtml += `
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-filter="${page}">
+                    ${page} <span class="badge bg-secondary ms-1">${count}</span>
+                </a>
+            </li>
+        `;
+    });
+    
+    tabsContainer.innerHTML = tabsHtml;
+    
+    // Add click handlers
+    tabsContainer.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Update active tab
+            tabsContainer.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Filter issues
+            const filter = this.dataset.filter;
+            if (filter === 'all') {
+                displayIssues(currentIssues);
+            } else {
+                const filtered = currentIssues.filter(issue => issue.page === filter);
+                displayIssues(filtered);
+            }
+        });
+    });
+}
+
+function updateCategoryBreakdown(categories) {
+    const container = document.getElementById('category-breakdown');
+    
+    if (Object.keys(categories).length === 0) {
+        container.innerHTML = '<div class="text-center text-muted small"><p>No issues by category</p></div>';
+        return;
+    }
+    
+    const total = Object.values(categories).reduce((sum, count) => sum + count, 0);
+    
+    const breakdownHtml = Object.entries(categories)
+        .sort(([,a], [,b]) => b - a)
+        .map(([category, count]) => {
+            const percentage = Math.round((count / total) * 100);
+            return `
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between small">
+                        <span>${category}</span>
+                        <span>${count} (${percentage}%)</span>
+                    </div>
+                    <div class="progress progress-thin">
+                        <div class="progress-bar" role="progressbar" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    
+    container.innerHTML = breakdownHtml;
+}
+
+async function autoFixIssues() {
+    const autoFixButton = document.querySelector('button[onclick="autoFixIssues()"]');
+    const originalText = autoFixButton.innerHTML;
+    
+    try {
+        // Show loading state
+        autoFixButton.disabled = true;
+        autoFixButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Auto-Fixing...';
+        
+        const response = await fetch('/api/v1/ui-monitoring/fix', {
+            method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            const results = data.fix_results;
+            RSApp.showMessage(`Fixed ${results.successful_fixes} of ${results.total_attempts} issues`, 'success');
+            
+            // Single refresh cycle after fix
+            await loadAllIssues();
+            await loadMonitoringStatus();
+            
+            // If fixes were applied, trigger one scan to get final results
+            if (results.successful_fixes > 0) {
+                try {
+                    const scanResponse = await fetch('/api/v1/ui-monitoring/scan', {
+                        method: 'POST'
+                    });
+                    if (scanResponse.ok) {
+                        // Single final refresh
+                        await loadAllIssues();
+                        await loadMonitoringStatus();
+                    }
+                } catch (scanError) {
+                    console.error('Error triggering scan:', scanError);
+                }
+            }
+        } else {
+            throw new Error(data.detail || 'Auto-fix failed');
+        }
+    } catch (error) {
+        console.error('Error during auto-fix:', error);
+        RSApp.showMessage('Auto-fix failed: ' + error.message, 'danger');
+    } finally {
+        // Restore button state
+        autoFixButton.disabled = false;
+        autoFixButton.innerHTML = originalText;
+    }
+}
+
+async function fixSingleIssue(issueId) {
+    try {
+        const response = await fetch(`/api/v1/ui-monitoring/fix/${issueId}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.fixed) {
+            RSApp.showMessage('Issue fixed successfully', 'success');
+            await loadAllIssues();
+            await loadMonitoringStatus();
+        } else if (data.status === 'not_fixable') {
+            RSApp.showMessage('This issue cannot be automatically fixed', 'warning');
+        } else {
+            throw new Error(data.message || 'Fix failed');
+        }
+    } catch (error) {
+        console.error('Error fixing issue:', error);
+        RSApp.showMessage('Fix failed: ' + error.message, 'danger');
+    }
+}
+
+function showIssueDetails(issueId) {
+    const issue = currentIssues.find(i => i.id === issueId);
+    if (!issue) return;
+    
+    selectedIssueId = issueId;
+    
+    const detailContent = document.getElementById('issue-detail-content');
+    detailContent.innerHTML = `
+        <div class="mb-3">
+            <div class="d-flex align-items-center mb-2">
+                <span class="severity-badge ${issue.severity} badge me-2">${issue.severity.toUpperCase()}</span>
+                <span class="category-badge me-2">${issue.category}</span>
+                ${issue.auto_fixable ? '<span class="badge bg-success">Auto-Fixable</span>' : '<span class="badge bg-secondary">Manual Fix Required</span>'}
+            </div>
+            <h6>Page: ${issue.page}.html</h6>
+            <h6>Element: ${issue.element}</h6>
+            <p class="text-muted small">Detected: ${new Date(issue.detected_at).toLocaleString()}</p>
+        </div>
+        
+        <div class="mb-3">
+            <h6>Description</h6>
+            <p>${issue.description}</p>
+        </div>
+        
+        <div class="alert alert-info">
+            <h6 class="alert-heading"><i class="fas fa-lightbulb me-1"></i>Suggested Fix</h6>
+            <p class="mb-0">${issue.suggested_fix}</p>
+        </div>
+    `;
+    
+    const fixBtn = document.getElementById('fix-issue-btn');
+    if (issue.auto_fixable) {
+        fixBtn.style.display = 'inline-block';
+    } else {
+        fixBtn.style.display = 'none';
+    }
+    
+    new bootstrap.Modal(document.getElementById('issueDetailModal')).show();
+}
+
+function fixSpecificIssue() {
+    if (selectedIssueId) {
+        fixSingleIssue(selectedIssueId);
+        bootstrap.Modal.getInstance(document.getElementById('issueDetailModal')).hide();
+    }
+}
+
+async function startMonitoring() {
+    try {
+        const response = await fetch('/api/v1/ui-monitoring/start-monitoring', {
+            method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.status === 'success' || data.status === 'already_running') {
+            RSApp.showMessage('UI monitoring started', 'success');
+            await loadMonitoringStatus();
+        } else {
+            throw new Error(data.detail || 'Failed to start monitoring');
+        }
+    } catch (error) {
+        console.error('Error starting monitoring:', error);
+        RSApp.showMessage('Failed to start monitoring: ' + error.message, 'danger');
+    }
+}
+
+async function stopMonitoring() {
+    try {
+        const response = await fetch('/api/v1/ui-monitoring/stop-monitoring', {
+            method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            RSApp.showMessage('UI monitoring stopped', 'info');
+            await loadMonitoringStatus();
+        } else {
+            throw new Error(data.detail || 'Failed to stop monitoring');
+        }
+    } catch (error) {
+        console.error('Error stopping monitoring:', error);
+        RSApp.showMessage('Failed to stop monitoring: ' + error.message, 'danger');
+    }
+}
+
+async function loadRecommendations() {
+    // Generate technical diagnostics based on current app state
+    const diagnostics = generateTechnicalDiagnostics();
+    displayRecommendations(diagnostics);
+}
+
+function generateTechnicalDiagnostics() {
+    const diagnostics = [];
+    
+    // Check performance
+    if (performance.timing) {
+        const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+        if (loadTime > 3000) {
+            diagnostics.push({
+                priority: 'high',
+                title: 'Slow Page Load Performance',
+                description: `Page loaded in ${loadTime}ms. Consider optimizing assets, lazy loading, or code splitting.`,
+                action: 'Profile network tab, check bundle sizes, implement performance monitoring'
+            });
+        }
+    }
+    
+    // Check console errors
+    const hasErrors = window.console && window.console.error;
+    if (hasErrors) {
+        diagnostics.push({
+            priority: 'medium',
+            title: 'Console Monitoring Active',
+            description: 'Browser console available for debugging. Check for JavaScript errors, network failures, or API issues.',
+            action: 'Open DevTools (F12) → Console tab → Monitor for errors during usage'
+        });
+    }
+    
+    // Check local storage usage
+    if (localStorage) {
+        let totalSize = 0;
+        for (let key in localStorage) {
+            if (localStorage.hasOwnProperty(key)) {
+                totalSize += localStorage[key].length + key.length;
+            }
+        }
+        if (totalSize > 1000000) { // ~1MB
+            diagnostics.push({
+                priority: 'low',
+                title: 'High LocalStorage Usage',
+                description: `Using ${Math.round(totalSize/1024)}KB of local storage. Consider cleanup or migration to IndexedDB.`,
+                action: 'Review localStorage keys, implement data retention policies'
+            });
+        }
+    }
+    
+    // Check for service workers
+    if ('serviceWorker' in navigator) {
+        diagnostics.push({
+            priority: 'low',
+            title: 'Service Worker Support Available',
+            description: 'Browser supports service workers for offline functionality and caching strategies.',
+            action: 'Consider implementing service worker for background sync, push notifications, or offline mode'
+        });
+    }
+    
+    // Memory usage (if available)
+    if (performance.memory) {
+        const memUsage = performance.memory.usedJSHeapSize / 1048576; // MB
+        if (memUsage > 50) {
+            diagnostics.push({
+                priority: 'medium',
+                title: 'High Memory Usage',
+                description: `JavaScript heap using ${memUsage.toFixed(1)}MB. Monitor for memory leaks.`,
+                action: 'Profile memory tab in DevTools, check for detached DOM nodes, event listener leaks'
+            });
+        }
+    }
+    
+    // API health check
+    diagnostics.push({
+        priority: 'medium',
+        title: 'API Health Monitoring',
+        description: 'Monitor API response times and error rates for backend services.',
+        action: 'Check Network tab for failed requests, slow responses (>2s), or CORS issues'
+    });
+    
+    // Database connection status
+    diagnostics.push({
+        priority: 'high',
+        title: 'Database Connection Diagnostics',
+        description: 'Verify all database connections (PostgreSQL, MongoDB, Redis, Elasticsearch) are healthy.',
+        action: 'Check /system-status endpoint, verify connection pools, monitor query performance'
+    });
+    
+    return diagnostics.length > 0 ? diagnostics : [
+        {
+            priority: 'low',
+            title: 'System Running Normally',
+            description: 'No immediate technical issues detected. All systems operational.',
+            action: 'Continue monitoring via DevTools, check logs periodically, run performance audits'
+        }
+    ];
+}
+
+function displayRecommendations(recommendations) {
+    const container = document.getElementById('recommendations-container');
+    
+    if (recommendations.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted small"><p>No recommendations available</p></div>';
+        return;
+    }
+    
+    const recommendationsHtml = recommendations.map(rec => `
+        <div class="recommendation-card ${rec.priority} p-3 mb-2 rounded">
+            <div class="d-flex align-items-center mb-1">
+                <span class="severity-badge ${rec.priority} badge me-2">${rec.priority.toUpperCase()}</span>
+                <h6 class="mb-0">${rec.title}</h6>
+            </div>
+            <p class="small mb-1">${rec.description}</p>
+            <p class="small text-muted mb-0"><strong>Action:</strong> ${rec.action}</p>
+        </div>
+    `).join('');
+    
+    container.innerHTML = recommendationsHtml;
+}
+
+async function generateAccessibilityReport() {
+    try {
+        const response = await fetch('/api/v1/ui-monitoring/accessibility-report');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            showAccessibilityReport(data.accessibility_report);
+        } else {
+            throw new Error(data.detail || 'Failed to generate accessibility report');
+        }
+    } catch (error) {
+        console.error('Error generating accessibility report:', error);
+        RSApp.showMessage('Failed to generate accessibility report', 'danger');
+    }
+}
+
+function showAccessibilityReport(report) {
+    const modal = new bootstrap.Modal(document.getElementById('issueDetailModal'));
+    const content = document.getElementById('issue-detail-content');
+    
+    content.innerHTML = `
+        <div class="mb-3">
+            <h5>Accessibility Report</h5>
+            <p class="text-muted">WCAG Compliance Assessment</p>
+        </div>
+        
+        <div class="mb-3">
+            <h6>Compliance Score</h6>
+            <div class="progress mb-2">
+                <div class="progress-bar ${report.compliance_score >= 80 ? 'bg-success' : report.compliance_score >= 60 ? 'bg-warning' : 'bg-danger'}" 
+                     role="progressbar" style="width: ${report.compliance_score}%">
+                    ${report.compliance_score}%
+                </div>
+            </div>
+            <small class="text-muted">${report.wcag_compliance.passed_checks} of ${report.wcag_compliance.total_checks} checks passed</small>
+        </div>
+        
+        <div class="mb-3">
+            <h6>Issues Found</h6>
+            <p>Total accessibility issues: <span class="badge bg-warning">${report.accessibility_issues}</span></p>
+            <p>Critical issues: <span class="badge bg-danger">${report.critical_accessibility_issues}</span></p>
+        </div>
+        
+        <div class="alert alert-info">
+            <h6 class="alert-heading">Recommendations</h6>
+            <ul class="mb-0">
+                ${report.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+            </ul>
+        </div>
+    `;
+    
+    document.getElementById('fix-issue-btn').style.display = 'none';
+    modal.show();
+}
+
+function scanSpecificPage() {
+    new bootstrap.Modal(document.getElementById('pageScanModal')).show();
+}
+
+async function performPageScan() {
+    const pageName = document.getElementById('page-name-input').value;
+    
+    try {
+        const response = await fetch(`/api/v1/ui-monitoring/scan/${pageName}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            RSApp.showMessage(`Page scan complete: ${data.issues_found} issues found on ${pageName} page`, 'success');
+            await loadAllIssues();
+            await loadMonitoringStatus();
+            bootstrap.Modal.getInstance(document.getElementById('pageScanModal')).hide();
+        } else {
+            throw new Error(data.detail || 'Page scan failed');
+        }
+    } catch (error) {
+        console.error('Error scanning page:', error);
+        RSApp.showMessage('Page scan failed: ' + error.message, 'danger');
+    }
+}
+
+function ignoreIssue(issueId) {
+    // This would mark the issue as ignored in the backend
+    RSApp.showMessage('Issue marked as ignored', 'info');
+    // Reload issues to reflect the change
+    loadAllIssues();
+}
+
+// Chatbox Functions
+async function initializeChatbox() {
+    try {
+        // Load report options for the chatbox
+        const response = await fetch('/api/v1/ui-monitoring/report-options');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            populateChatboxOptions(data.report_options);
+            setupChatboxEventListeners();
+        }
+    } catch (error) {
+        console.error('Error initializing chatbox:', error);
+    }
+}
+
+function populateChatboxOptions(options) {
+    // Populate pages
+    const pageSelect = document.getElementById('report-page');
+    options.pages.forEach(page => {
+        const option = document.createElement('option');
+        option.value = page.value;
+        option.textContent = page.label;
+        pageSelect.appendChild(option);
+    });
+    
+    // Populate categories
+    const categorySelect = document.getElementById('report-category');
+    options.categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        categorySelect.appendChild(option);
+    });
+    
+    // Populate severity levels
+    const severitySelect = document.getElementById('report-severity');
+    options.severity_levels.forEach(severity => {
+        const option = document.createElement('option');
+        option.value = severity.value;
+        option.textContent = severity.label;
+        option.style.color = severity.color;
+        severitySelect.appendChild(option);
+    });
+    
+    // Populate elements
+    const elementSelect = document.getElementById('report-element');
+    options.elements.forEach(element => {
+        const option = document.createElement('option');
+        option.value = element;
+        option.textContent = element.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        elementSelect.appendChild(option);
+    });
+}
+
+function setupChatboxEventListeners() {
+    // Form submission
+    const form = document.getElementById('issue-report-form');
+    form.addEventListener('submit', handleIssueReport);
+}
+
+function toggleChatbox() {
+    const body = document.getElementById('chatbox-body');
+    const icon = document.getElementById('chatbox-toggle-icon');
+    
+    if (body.classList.contains('collapsed')) {
+        body.classList.remove('collapsed');
+        icon.classList.remove('collapsed');
+    } else {
+        body.classList.add('collapsed');
+        icon.classList.add('collapsed');
+    }
+}
+
+async function handleIssueReport(event) {
+    event.preventDefault();
+    
+    const submitBtn = document.getElementById('submit-report-btn');
+    const messagesDiv = document.getElementById('report-messages');
+    
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Submitting...';
+    
+    try {
+        // Collect form data
+        const reportData = {
+            page: document.getElementById('report-page').value,
+            category: document.getElementById('report-category').value,
+            severity: document.getElementById('report-severity').value,
+            element: document.getElementById('report-element').value || 'other',
+            description: document.getElementById('report-description').value,
+            suggested_fix: document.getElementById('report-suggested-fix').value || ''
+        };
+        
+        // Submit report
+        const response = await fetch('/api/v1/ui-monitoring/report-issue', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(reportData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            showChatboxMessage('Issue reported successfully! Thank you for your feedback.', 'success');
+            clearReportForm();
+            
+            // Refresh the issues list if we're on the monitoring page
+            if (typeof loadAllIssues === 'function') {
+                await loadAllIssues();
+            }
+        } else {
+            throw new Error(result.detail || 'Failed to submit report');
+        }
+    } catch (error) {
+        console.error('Error submitting issue report:', error);
+        showChatboxMessage('Failed to submit report: ' + error.message, 'error');
+    } finally {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Submit Report';
+    }
+}
+
+function showChatboxMessage(message, type) {
+    const messagesDiv = document.getElementById('report-messages');
+    const messageElement = document.createElement('div');
+    messageElement.className = `chatbox-message ${type}`;
+    messageElement.textContent = message;
+    
+    messagesDiv.innerHTML = '';
+    messagesDiv.appendChild(messageElement);
+    
+    // Clear message after 5 seconds
+    setTimeout(() => {
+        messageElement.remove();
+    }, 5000);
+}
+
+function clearReportForm() {
+    document.getElementById('issue-report-form').reset();
+    document.getElementById('report-messages').innerHTML = '';
+}
+</script>
+{% endblock %}

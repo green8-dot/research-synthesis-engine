@@ -1,0 +1,1048 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Research Synthesis Engine{% endblock %}
+
+{% block head %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-0 text-gradient">
+                    <i class="fas fa-chart-pie me-2"></i>Research Dashboard
+                </h1>
+                <p class="text-muted mb-0">Real-time intelligence and system overview</p>
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="dashboard.loadDashboardData()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Status Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-articles">{{ stats.total_articles or 0 }}</div>
+                    <div class="stat-label">Articles Collected</div>
+                    <div class="stat-change" id="change-articles">
+                        <i class="fas fa-minus me-1"></i>Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-reports">{{ stats.total_reports or 0 }}</div>
+                    <div class="stat-label">Reports Generated</div>
+                    <div class="stat-change" id="change-reports">
+                        <i class="fas fa-minus me-1"></i>Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon">
+                    <i class="fas fa-spider"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-sources">{{ stats.active_sources or 5 }}</div>
+                    <div class="stat-label">Active Sources</div>
+                    <div class="stat-change" id="change-sources">
+                        <i class="fas fa-minus me-1"></i>Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <div class="ms-3 flex-grow-1">
+                    <div class="stat-number" id="stat-entities">{{ stats.total_entities or 0 }}</div>
+                    <div class="stat-label">Knowledge Entities</div>
+                    <div class="stat-change" id="change-entities">
+                        <i class="fas fa-minus me-1"></i>Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- System Status -->
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="mb-0">
+                    <i class="fas fa-heartbeat me-2"></i>System Status
+                </h5>
+                <div class="status-indicator">
+                    <span class="status-dot online"></span>
+                    <span class="status-text">Online</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="fw-semibold mb-3">Database Connections</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>SQLite (Primary)</span>
+                                {% if database_status and database_status.postgresql %}
+                                    {% if database_status.postgresql.status == 'connected' %}
+                                        <span class="badge bg-success">Connected</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Disconnected</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-success">Connected</span>
+                                {% endif %}
+                            </div>
+                            <div class="progress mb-2">
+                                {% if database_status and database_status.postgresql %}
+                                    {% if database_status.postgresql.status == 'connected' %}
+                                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                                    {% else %}
+                                        <div class="progress-bar bg-danger" style="width: 0%"></div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="progress-bar bg-success" style="width: 100%"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>MongoDB (Legacy)</span>
+                                {% if database_status and database_status.mongodb %}
+                                    {% if database_status.mongodb.status == 'connected' %}
+                                        <span class="badge bg-success">Connected</span>
+                                    {% elif database_status.mongodb.status == 'not_installed' %}
+                                        <span class="badge bg-secondary">Not Installed</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Disconnected</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-warning">Unknown</span>
+                                {% endif %}
+                            </div>
+                            <div class="progress mb-2">
+                                {% if database_status and database_status.mongodb %}
+                                    {% if database_status.mongodb.status == 'connected' %}
+                                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                                    {% elif database_status.mongodb.status == 'not_installed' %}
+                                        <div class="progress-bar bg-secondary" style="width: 0%"></div>
+                                    {% else %}
+                                        <div class="progress-bar bg-danger" style="width: 0%"></div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="progress-bar bg-warning" style="width: 0%"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Redis (Cache)</span>
+                                {% if database_status and database_status.redis %}
+                                    {% if database_status.redis.status == 'connected' %}
+                                        <span class="badge bg-success">Connected</span>
+                                    {% elif database_status.redis.status == 'not_installed' %}
+                                        <span class="badge bg-secondary">Not Installed</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Disconnected</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-warning">Unknown</span>
+                                {% endif %}
+                            </div>
+                            <div class="progress mb-2">
+                                {% if database_status and database_status.redis %}
+                                    {% if database_status.redis.status == 'connected' %}
+                                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                                    {% elif database_status.redis.status == 'not_installed' %}
+                                        <div class="progress-bar bg-secondary" style="width: 0%"></div>
+                                    {% else %}
+                                        <div class="progress-bar bg-danger" style="width: 0%"></div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="progress-bar bg-warning" style="width: 0%"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="fw-semibold mb-3">Service Status</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Web Scraping</span>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>NLP Processing</span>
+                                <span class="badge bg-success">Ready</span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Report Generator</span>
+                                <span class="badge bg-success">Ready</span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- UI Health Monitor -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="mb-0">
+                    <i class="fas fa-eye me-2"></i>UI Health Monitor
+                </h5>
+                <div class="ui-health-indicator">
+                    <span class="status-dot" id="ui-health-dot"></span>
+                    <span class="status-text" id="ui-health-text">Checking...</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Open Issues</span>
+                        <span class="badge" id="ui-issues-badge">-</span>
+                    </div>
+                    <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar" id="ui-issues-progress" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted" id="ui-issues-text">Loading UI health status...</small>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Auto-Fixable</span>
+                        <span class="badge bg-success" id="ui-fixable-badge">-</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Pages Scanned</span>
+                        <span class="text-muted" id="ui-pages-count">-</span>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="triggerUIHealthCheck()">
+                            <i class="fas fa-search me-1"></i>Quick Scan
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="autoFixUIIssues()" id="auto-fix-btn">
+                            <i class="fas fa-magic me-1"></i>Auto-Fix Issues
+                        </button>
+                        <a href="/ui-monitoring" class="btn btn-primary btn-sm">
+                            <i class="fas fa-tools me-1"></i>UI Monitoring
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- System Integration Overview -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="mb-0">
+                    <i class="fas fa-network-wired me-2"></i>System Integration
+                </h5>
+                <div class="integration-health-indicator">
+                    <span class="status-dot" id="integration-health-dot"></span>
+                    <span class="status-text" id="integration-health-text">Loading...</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Active Components</span>
+                        <span class="badge bg-primary" id="active-components-badge">-</span>
+                    </div>
+                    <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar bg-success" id="components-progress" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted" id="components-text">Loading component status...</small>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Integration Rules</span>
+                        <span class="badge bg-info" id="integration-rules-badge">-</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>UI Issues Tracked</span>
+                        <span class="text-muted" id="tracked-issues-count">-</span>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-success btn-sm" onclick="refreshSystemIntegration()">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh Status
+                        </button>
+                        <a href="/api/v1/system-integration/overview" target="_blank" class="btn btn-primary btn-sm">
+                            <i class="fas fa-cogs me-1"></i>System Overview
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Second Row -->
+<div class="row">
+    <!-- Quick Actions -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <a href="/scraping" class="btn btn-outline-primary">
+                        <i class="fas fa-spider me-2"></i>Start Web Scraping
+                    </a>
+                    
+                    <a href="/research" class="btn btn-outline-primary">
+                        <i class="fas fa-search me-2"></i>New Research Query
+                    </a>
+                    
+                    <a href="/reports" class="btn btn-outline-primary">
+                        <i class="fas fa-file-alt me-2"></i>Generate Report
+                    </a>
+                    
+                    <a href="/knowledge" class="btn btn-outline-primary">
+                        <i class="fas fa-project-diagram me-2"></i>Explore Knowledge Graph
+                    </a>
+                    
+                    <hr class="my-3">
+                    
+                    <button class="btn btn-outline-warning" onclick="runSystemTests()">
+                        <i class="fas fa-stethoscope me-2"></i>System Health Test
+                    </button>
+                    
+                    <button class="btn btn-outline-info" onclick="runQuickHealthCheck()">
+                        <i class="fas fa-heartbeat me-2"></i>Quick Health Check
+                    </button>
+                    
+                    <hr class="my-3">
+                    
+                    <a href="/docs" class="btn btn-outline-secondary">
+                        <i class="fas fa-book me-2"></i>API Documentation
+                    </a>
+                    
+                    <a href="/system-status" class="btn btn-outline-secondary">
+                        <i class="fas fa-cog me-2"></i>System Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>Recent Activity
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="recent-activity">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="status-dot online"></div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="fw-medium">System started successfully</div>
+                            <small class="text-muted">{{ current_time }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="status-dot online"></div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="fw-medium">SQLite database connected</div>
+                            <small class="text-muted">{{ current_time }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="status-dot online"></div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="fw-medium">Web interface initialized</div>
+                            <small class="text-muted">{{ current_time }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <small class="text-muted">Ready for research operations</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Sources Status -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <button class="btn btn-link text-decoration-none p-0 d-flex align-items-center w-100 justify-content-between" 
+                            type="button" data-bs-toggle="collapse" data-bs-target="#dataSourcesCollapse" 
+                            aria-expanded="false" aria-controls="dataSourcesCollapse">
+                        <span>
+                            <i class="fas fa-rss me-2"></i>Data Sources
+                            <small class="text-muted ms-2">(<span id="sources-count">Loading...</span> sources)</small>
+                        </span>
+                        <i class="fas fa-chevron-down collapse-icon"></i>
+                    </button>
+                </h5>
+            </div>
+            <div class="collapse" id="dataSourcesCollapse">
+                <div class="card-body">
+                <div class="table-responsive"><div class="table-responsive"><table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Source</th>
+                                <th>Last Updated</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sources-status">
+                            <tr>
+                                <td>
+                                    <div class="status-indicator">
+                                        <span class="status-dot warning"></span>
+                                        SpaceNews
+                                    </div>
+                                </td>
+                                <td>Never</td>
+                                <td><span class="badge bg-warning">Ready</span></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="status-indicator">
+                                        <span class="status-dot warning"></span>
+                                        Space.com
+                                    </div>
+                                </td>
+                                <td>Never</td>
+                                <td><span class="badge bg-warning">Ready</span></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="status-indicator">
+                                        <span class="status-dot warning"></span>
+                                        SpaceflightNow
+                                    </div>
+                                </td>
+                                <td>Never</td>
+                                <td><span class="badge bg-warning">Ready</span></td>
+                            </tr>
+                        </tbody>
+                    </table></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Space Manufacturing Intelligence Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-industry me-2"></i>Space Manufacturing Intelligence
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="stat-icon mx-auto mb-3" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+                            <i class="fas fa-cube"></i>
+                        </div>
+                        <h6 class="fw-semibold">In-Space Manufacturing</h6>
+                        <p class="text-muted small">Track developments in orbital factories and 3D printing capabilities</p>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="stat-icon mx-auto mb-3" style="background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);">
+                            <i class="fas fa-microscope"></i>
+                        </div>
+                        <h6 class="fw-semibold">Materials Research</h6>
+                        <p class="text-muted small">Monitor breakthroughs in space-grade materials and composites</p>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="stat-icon mx-auto mb-3" style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h6 class="fw-semibold">Market Analysis</h6>
+                        <p class="text-muted small">Analyze economic opportunities and competitive landscape</p>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="/reports?type=manufacturing" class="btn btn-primary">
+                        <i class="fas fa-rocket me-2"></i>Generate Manufacturing Intelligence Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/kpi_dashboard.js"></script>
+<style>
+/* Collapsible Data Sources Styling */
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+[aria-expanded="true"] .collapse-icon {
+    transform: rotate(180deg);
+}
+
+.card-header .btn-link {
+    color: inherit !important;
+}
+
+.card-header .btn-link:hover {
+    color: var(--bs-primary) !important;
+}
+
+#sources-count {
+    font-weight: 500;
+}
+
+/* Make table more compact */
+.table-sm td {
+    padding: 0.5rem 0.75rem;
+}
+
+/* Add smooth transitions */
+.collapse {
+    transition: all 0.35s ease;
+}
+</style>
+<script>
+// Dashboard-specific initialization
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard loaded successfully');
+    
+    // Update sources count when data is loaded
+    dashboard.loadSourcesStatus = function() {
+        fetch('/api/v1/scraping/sources/status')
+            .then(response => response.json())
+            .then(data => {
+                const sourcesCount = data.sources ? data.sources.length : 0;
+                document.getElementById('sources-count').textContent = sourcesCount;
+                
+                const tbody = document.getElementById('sources-status');
+                if (tbody && data.sources) {
+                    tbody.innerHTML = '';
+                    
+                    data.sources.forEach(source => {
+                        const lastScraped = source.last_scraped ? 
+                            new Date(source.last_scraped).toLocaleString() : 'Never';
+                        
+                        const statusClass = source.status === 'completed' ? 'success' : 
+                                          source.status === 'processing' ? 'info' :
+                                          source.status === 'error' ? 'danger' : 'warning';
+                                          
+                        const statusDot = source.status === 'completed' ? 'success' : 
+                                        source.status === 'processing' ? 'info' :
+                                        source.status === 'error' ? 'danger' : 'warning';
+                        
+                        const row = `
+                            <tr>
+                                <td>
+                                    <div class="status-indicator">
+                                        <span class="status-dot ${statusDot}"></span>
+                                        ${source.name}
+                                    </div>
+                                </td>
+                                <td>${lastScraped}</td>
+                                <td><span class="badge bg-${statusClass}">${source.status}</span></td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load sources status:', error);
+            });
+    };
+    
+    // Load UI health monitoring data
+    dashboard.loadUIHealthStatus = function() {
+        fetch('/api/v1/ui-monitoring/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const summary = data.monitoring_summary;
+                    const serviceHealth = data.service_health;
+                    
+                    // Update UI health indicator
+                    const healthDot = document.getElementById('ui-health-dot');
+                    const healthText = document.getElementById('ui-health-text');
+                    
+                    if (summary.open_issues === 0) {
+                        healthDot.className = 'status-dot online';
+                        healthText.textContent = 'Healthy';
+                    } else if (summary.by_severity && summary.by_severity.critical > 0) {
+                        healthDot.className = 'status-dot offline';
+                        healthText.textContent = 'Issues Found';
+                    } else {
+                        healthDot.className = 'status-dot warning';
+                        healthText.textContent = 'Minor Issues';
+                    }
+                    
+                    // Update issues badge and progress
+                    const issuesBadge = document.getElementById('ui-issues-badge');
+                    const issuesProgress = document.getElementById('ui-issues-progress');
+                    const issuesText = document.getElementById('ui-issues-text');
+                    
+                    const openIssues = summary.open_issues || 0;
+                    if (openIssues === 0) {
+                        issuesBadge.className = 'badge bg-success';
+                        issuesBadge.textContent = '0';
+                        issuesProgress.className = 'progress-bar bg-success';
+                        issuesProgress.style.width = '100%';
+                        issuesText.textContent = 'No UI issues detected';
+                    } else {
+                        if (summary.by_severity && summary.by_severity.critical > 0) {
+                            issuesBadge.className = 'badge bg-danger';
+                            issuesProgress.className = 'progress-bar bg-danger';
+                        } else if (summary.by_severity && summary.by_severity.high > 0) {
+                            issuesBadge.className = 'badge bg-warning';
+                            issuesProgress.className = 'progress-bar bg-warning';
+                        } else {
+                            issuesBadge.className = 'badge bg-info';
+                            issuesProgress.className = 'progress-bar bg-info';
+                        }
+                        
+                        issuesBadge.textContent = openIssues;
+                        issuesProgress.style.width = Math.min(openIssues * 10, 100) + '%';
+                        issuesText.textContent = openIssues === 1 ? '1 issue needs attention' : `${openIssues} issues need attention`;
+                    }
+                    
+                    // Update auto-fixable count
+                    const fixableBadge = document.getElementById('ui-fixable-badge');
+                    const autoFixable = summary.auto_fixable || 0;
+                    fixableBadge.textContent = autoFixable;
+                    
+                    // Update pages count
+                    const pagesCount = document.getElementById('ui-pages-count');
+                    pagesCount.textContent = serviceHealth.total_scanned_pages || 0;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading UI health status:', error);
+                const healthDot = document.getElementById('ui-health-dot');
+                const healthText = document.getElementById('ui-health-text');
+                const issuesText = document.getElementById('ui-issues-text');
+                
+                if (healthDot) healthDot.className = 'status-dot offline';
+                if (healthText) healthText.textContent = 'Error';
+                if (issuesText) issuesText.textContent = 'Unable to check UI health';
+            });
+    };
+    
+    // Load sources status initially
+    dashboard.loadSourcesStatus();
+    dashboard.loadUIHealthStatus();
+    
+    // Auto-refresh sources status every 30 seconds
+    setInterval(dashboard.loadSourcesStatus, 30000);
+    // Auto-refresh UI health status every 2 minutes
+    setInterval(dashboard.loadUIHealthStatus, 120000);
+});
+
+// UI Health functions
+function triggerUIHealthCheck() {
+    const button = event.target;
+    const originalContent = button.innerHTML;
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Scanning...';
+    
+    fetch('/api/v1/ui-monitoring/scan', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            RSApp.showMessage(`UI scan complete: ${data.scan_results.total_issues_found} issues found`, 'success');
+            // Reload UI health status
+            dashboard.loadUIHealthStatus();
+        } else {
+            throw new Error(data.detail || 'Scan failed');
+        }
+    })
+    .catch(error => {
+        console.error('UI health check failed:', error);
+        RSApp.showMessage('UI health check failed: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = originalContent;
+    });
+}
+
+// Auto-Fix UI Issues Function
+function autoFixUIIssues() {
+    const button = document.getElementById('auto-fix-btn');
+    const originalContent = button.innerHTML;
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Auto-Fixing...';
+    
+    fetch('/api/v1/ui-monitoring/fix', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            fix_category: 'all'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const results = data.fix_results;
+            const totalAttempts = results.total_attempts || 0;
+            const successfulFixes = results.successful_fixes || 0;
+            const failedFixes = results.failed_fixes || 0;
+            
+            let messageType = 'success';
+            let message = `Auto-fix complete! Fixed ${successfulFixes}/${totalAttempts} issues.`;
+            
+            if (failedFixes > 0) {
+                messageType = 'warning';
+                message += ` ${failedFixes} issues could not be automatically fixed.`;
+            }
+            
+            RSApp.showMessage(message, messageType);
+            
+            // Refresh UI health status
+            setTimeout(() => {
+                dashboard.loadUIHealthStatus();
+            }, 1000);
+        } else {
+            throw new Error(data.detail || 'Auto-fix failed');
+        }
+    })
+    .catch(error => {
+        console.error('Auto-fix failed:', error);
+        RSApp.showMessage('Auto-fix failed: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = originalContent;
+    });
+}
+
+// System Integration Functions
+function refreshSystemIntegration() {
+    const button = event.target;
+    const originalContent = button.innerHTML;
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Refreshing...';
+    
+    // Refresh both system integration status and UI issues data
+    Promise.all([
+        fetch('/api/v1/system-integration/status').then(r => r.json()),
+        fetch('/api/v1/data-admin/ui-issues?limit=100').then(r => r.json()).catch(() => ({total_ui_issues: 0}))
+    ])
+    .then(([integrationData, uiIssuesData]) => {
+        dashboard.updateSystemIntegrationStatus(integrationData, uiIssuesData);
+        RSApp.showMessage('System integration status refreshed', 'success');
+    })
+    .catch(error => {
+        console.error('System integration refresh failed:', error);
+        RSApp.showMessage('System integration refresh failed: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = originalContent;
+    });
+}
+
+// Add to dashboard object
+if (typeof dashboard !== 'undefined') {
+    dashboard.loadSystemIntegrationStatus = function() {
+        // Load system integration status
+        fetch('/api/v1/system-integration/status')
+            .then(response => response.json())
+            .then(data => {
+                // Load UI issues data
+                return fetch('/api/v1/data-admin/ui-issues?limit=100')
+                    .then(r => r.json())
+                    .then(uiIssuesData => {
+                        this.updateSystemIntegrationStatus(data, uiIssuesData);
+                    })
+                    .catch(() => {
+                        // Fallback if data-admin endpoint not available
+                        this.updateSystemIntegrationStatus(data, {total_ui_issues: 0});
+                    });
+            })
+            .catch(error => {
+                console.error('Failed to load system integration status:', error);
+                document.getElementById('integration-health-text').textContent = 'Error';
+                document.getElementById('integration-health-dot').className = 'status-dot status-error';
+            });
+    };
+
+    dashboard.updateSystemIntegrationStatus = function(data, uiIssuesData = {}) {
+        try {
+            const healthDot = document.getElementById('integration-health-dot');
+            const healthText = document.getElementById('integration-health-text');
+            const activeComponentsBadge = document.getElementById('active-components-badge');
+            const componentsProgress = document.getElementById('components-progress');
+            const componentsText = document.getElementById('components-text');
+            const integrationRulesBadge = document.getElementById('integration-rules-badge');
+            const trackedIssuesCount = document.getElementById('tracked-issues-count');
+
+            if (data.status === 'operational' && data.system_overview) {
+                const overview = data.system_overview;
+                const activeComponents = overview.active_components || 0;
+                const totalComponents = overview.total_components || 1;
+                const integrationRules = data.integration_map ? Object.keys(data.integration_map).length : 0;
+                const trackedIssues = uiIssuesData.total_ui_issues || 0;
+
+                // Update health indicator
+                healthDot.className = 'status-dot status-success';
+                healthText.textContent = 'Operational';
+
+                // Update active components
+                activeComponentsBadge.textContent = activeComponents;
+                const componentPercentage = (activeComponents / totalComponents) * 100;
+                componentsProgress.style.width = `${componentPercentage}%`;
+                componentsText.textContent = `${activeComponents}/${totalComponents} components active`;
+
+                // Update integration rules
+                integrationRulesBadge.textContent = integrationRules;
+
+                // Update tracked issues
+                trackedIssuesCount.textContent = trackedIssues;
+
+                // Update progress bar color based on health
+                if (componentPercentage >= 80) {
+                    componentsProgress.className = 'progress-bar bg-success';
+                } else if (componentPercentage >= 50) {
+                    componentsProgress.className = 'progress-bar bg-warning';
+                } else {
+                    componentsProgress.className = 'progress-bar bg-danger';
+                }
+            } else {
+                healthDot.className = 'status-dot status-error';
+                healthText.textContent = 'Error';
+                componentsText.textContent = 'Failed to load status';
+            }
+        } catch (error) {
+            console.error('Error updating system integration status:', error);
+        }
+    };
+
+    // Load system integration status on page load
+    const originalInit = dashboard.init;
+    dashboard.init = function() {
+        if (originalInit) originalInit.call(this);
+        this.loadSystemIntegrationStatus();
+    };
+}
+
+// System Testing Functions
+async function runSystemTests() {
+    try {
+        // Show loading toast
+        showToast('Running comprehensive system tests...', 'info');
+        
+        const response = await fetch('/api/v1/system-tester/comprehensive', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.results) {
+            const results = data.results;
+            const summary = results.summary;
+            
+            // Create detailed results modal or redirect to diagnostics
+            let message = `System Test Results:\\n`;
+            message += `✅ Passed: ${summary.passed_tests}/${summary.total_tests} tests\\n`;
+            
+            if (summary.critical_issues > 0) {
+                message += `🚨 Critical Issues: ${summary.critical_issues}\\n`;
+            }
+            if (summary.high_issues > 0) {
+                message += `⚠️ High Priority Issues: ${summary.high_issues}\\n`;
+            }
+            if (summary.auto_fixable_issues > 0) {
+                message += `🔧 Auto-fixable Issues: ${summary.auto_fixable_issues}\\n`;
+            }
+            
+            message += `\\nRecommendations:\\n${results.recommendations.slice(0, 3).join('\\n')}`;
+            
+            if (summary.critical_issues > 0 || summary.high_issues > 0) {
+                showToast('System tests completed with issues found', 'warning');
+                alert(message);
+                // Redirect to diagnostics for detailed view
+                window.location.href = '/diagnostics';
+            } else {
+                showToast('System tests passed successfully!', 'success');
+                alert(message);
+            }
+        } else {
+            throw new Error('Invalid response format');
+        }
+        
+    } catch (error) {
+        console.error('System tests failed:', error);
+        showToast('System tests failed: ' + error.message, 'error');
+    }
+}
+
+async function runQuickHealthCheck() {
+    try {
+        showToast('Running quick health check...', 'info');
+        
+        const response = await fetch('/api/v1/system-tester/quick-check');
+        const data = await response.json();
+        
+        const status = data.health_status;
+        const score = data.health_score;
+        const issues = data.issues_detected;
+        
+        let message = `Quick Health Check Results:\\n`;
+        message += `Status: ${status.toUpperCase()} (${score}%)\\n`;
+        message += `Issues Detected: ${issues}\\n`;
+        
+        if (data.critical_issues && data.critical_issues.length > 0) {
+            message += `\\nCritical Issues:\\n${data.critical_issues.join('\\n')}`;
+        }
+        
+        const alertType = status === 'excellent' ? 'success' : 
+                         status === 'good' ? 'info' : 'warning';
+        
+        showToast(`Health check: ${status} (${score}%)`, alertType);
+        
+        if (issues > 0) {
+            alert(message);
+            if (status === 'needs_attention') {
+                // Offer to run comprehensive tests
+                if (confirm('Issues detected. Run comprehensive tests for detailed analysis?')) {
+                    await runSystemTests();
+                }
+            }
+        } else {
+            showToast('System health excellent!', 'success');
+        }
+        
+    } catch (error) {
+        console.error('Quick health check failed:', error);
+        showToast('Health check failed: ' + error.message, 'error');
+    }
+}
+
+// Toast notification function
+function showToast(message, type = 'info') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    
+    const icon = {
+        'success': 'fa-check-circle',
+        'info': 'fa-info-circle', 
+        'warning': 'fa-exclamation-triangle',
+        'error': 'fa-times-circle'
+    }[type] || 'fa-info-circle';
+    
+    toast.innerHTML = `
+        <i class="fas ${icon} me-2"></i>${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}
