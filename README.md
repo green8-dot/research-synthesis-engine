@@ -50,7 +50,13 @@ src/
 
 ## License
 
-MIT License - See LICENSE file
+MIT License
+
+Copyright (c) 2025 Derek Green
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software.
+
+See [LICENSE](LICENSE) file for full details.
 
 ## Author
 
