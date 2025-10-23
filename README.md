@@ -2,6 +2,12 @@
 
 Web scraping and NLP processing for research intelligence.
 
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Scrapy](https://img.shields.io/badge/Scrapy-2.11-green.svg)](https://scrapy.org/)
+[![spaCy](https://img.shields.io/badge/spaCy-3.7-blue.svg)](https://spacy.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![NetworkX](https://img.shields.io/badge/NetworkX-Graph-orange)](https://networkx.org/)
+
 ## Features
 
 - Multi-source web scraping (Scrapy spiders)
