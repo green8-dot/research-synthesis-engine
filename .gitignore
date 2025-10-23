@@ -43,6 +43,18 @@ cache/
 logs/
 *.log
 
-# Environment
+# Environment & Secrets
 .env
+.env.*
 .env.local
+*credentials*
+*secret*
+*.key
+*.pem
+
+# Internal/Personal
+*STARTUP*
+*performance_analysis*
+*plaid*
+*moneyman*
+*orbital*
